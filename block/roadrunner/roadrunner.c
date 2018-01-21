@@ -29,74 +29,93 @@
   
 #include "roadrunner.h"
 
-// s-box layer
-void sbox(uint8_t x[])
+// S-Layer
+void sbox(uint8_t *x)
 {
-    uint8_t t = x[3];
+    uint8_t t;
     
+    t = x[3];
+
     x[3] &= x[2];
     x[3] ^= x[1];
     x[1] |= x[2];
     x[1] ^= x[0];
     x[0] &= x[3];
-    x[0] ^= t;
-    t    &= x[1];
-    x[2] ^= t;
+    x[0] ^=  t; 
+       t &= x[1];
+    x[2] ^=  t;
 }
 
-void SLK(uint8_t x[], uint8_t *sk)
+// SLK function 
+void SLK(w32_t *x, uint8_t *sk)
 {
-    uint8_t i, t;
+    int     i;
+    uint8_t t;
+    uint8_t *p=x->b;
     
-    sbox(x);
+    // apply S-Layer
+    sbox(p);
     
-    for(i=0; i<4; i++) {      
-      t = ROTL8(x[i], 1); t ^= x[i];
-      t = ROTL8(t, 1); x[i] ^= t;
+    for (i=4; i>0; i--) {      
+      // apply L-Layer
+      t   = ROTL8(*p, 1) ^ *p;       
+      *p ^= ROTL8(t,  1); 
       
-      x[i] ^= sk[i];
+      // apply K-Layer
+      *p++ ^= *sk++;
     }
 }
-
-void rr_round(uint8_t *x, uint8_t *rk, uint8_t idx, uint8_t *ctr)
-{
-    uint8_t i;
-    uint8_t t[4];
     
-    for (i=0; i<4; i++) {
-      t[i] = x[i];
-    }
-    for (i=0; i<3; i++) {
-      if (i==2) x[3] ^= idx;
-      SLK (x, rk + ctr[0]);
-      ctr[0] = (ctr[0] + 4) & 15;
-    }
-    
-    sbox(x);
-    
-    for (i=0; i<4; i++) x[i  ] ^= x[i+4];
-    for (i=0; i<4; i++) x[i+4]  = t[i  ];
-}
-  
-void road64_encrypt(void *data, void *keys)
+// F round
+void F(w64_t *blk, void *key, 
+    uint8_t *key_idx, uint8_t ci)
 {
     int      i;
-    uint8_t t[4]={0};
-    uint8_t *x=(uint8_t*)data;
-    uint8_t *rk=(uint8_t*)keys;
-
-    t[0] = 4;
+    uint32_t t;
+    uint8_t  *rk=(uint8_t*)key;
+    w32_t    *x=(w32_t*)blk;
     
-    // key pre-whitening
-    for (i=0; i<4; i++) x[i] ^= rk[i];
+    // save 32-bits
+    t = x->w;
+    
+    for (i=3; i>0; i--) {
+      // add round constant
+      if (i==1) x->b[3] ^= ci;
+      // apply S,L,K layers
+      SLK (x, rk + *key_idx);      
+      // advance master key index
+      *key_idx = (*key_idx + 4) & 15;
+    }
+    
+    // apply S-Layer
+    sbox(x->b);
+    
+    // add upper 32-bits
+    blk->w[0]^= blk->w[1];
+    blk->w[1] = t;
+}
+
+// encrypt 64-bits of data using 128-bit key  
+void road64_encrypt(void *data, void *key)
+{
+    int      rnd;
+    uint8_t  key_idx;
+    uint32_t t;
+    w64_t    *x=(w64_t*)data;
+    uint32_t *rk=(uint32_t*)key;
+
+    // initialize master key index
+    key_idx = 4;
+    
+    // apply K-Layer
+    x->w[0] ^= rk[0];
     
     // apply rounds
-    for (i=RR_ROUNDS; i>0; i--) {
-      rr_round(x, rk, i, t);
+    for (rnd=RR_ROUNDS; rnd>0; rnd--) {
+      F(x, rk, &key_idx, rnd);
     }
-    // 
-    for (i=0; i<4; i++) t[i] = x[i];
-    // key whitening
-    for (i=0; i<4; i++) x[i  ] = x[i+4] ^ rk[i+4];
-    for (i=0; i<4; i++) x[i+4] = t[i];
+    // P-Layer?
+    XCHG(x->w[0], x->w[1]);
+    // apply K-Layer
+    x->w[0] ^= rk[1];
 }
