@@ -1,0 +1,28 @@
+ecp.asm(171) : Error A2183: Use of register assumed to ERROR
+ecp.asm(180) : Error A2183: Use of register assumed to ERROR
+ecp.asm(191) : Error A2183: Use of register assumed to ERROR
+ecp.asm(248) : Error A2183: Use of register assumed to ERROR
+ecp.asm(251) : Error A2183: Use of register assumed to ERROR
+ecp.asm(252) : Warning A4073: Size not specified, assuming: BYTE
+ecp.asm(292) : Error A2183: Use of register assumed to ERROR
+ecp.asm(299) : Error A2183: Use of register assumed to ERROR
+ecp.asm(317) : Error A2183: Use of register assumed to ERROR
+ecp.asm(320) : Error A2183: Use of register assumed to ERROR
+ecp.asm(384) : Warning A4073: Size not specified, assuming: BYTE
+ecp.asm(395) : Error A2183: Use of register assumed to ERROR
+ecp.asm(399) : Error A2183: Use of register assumed to ERROR
+ecp.asm(401) : Warning A4073: Size not specified, assuming: BYTE
+ecp.asm(436) : Error A2183: Use of register assumed to ERROR
+ecp.asm(452) : Error A2183: Use of register assumed to ERROR
+ecp.asm(458) : Error A2183: Use of register assumed to ERROR
+ecp.asm(475) : Error A2183: Use of register assumed to ERROR
+ecp.asm(482) : Error A2183: Use of register assumed to ERROR
+ecp.asm(487) : Error A2183: Use of register assumed to ERROR
+ecp.asm(536) : Error A2183: Use of register assumed to ERROR
+ecp.asm(576) : Error A2183: Use of register assumed to ERROR
+ecp.asm(584) : Error A2183: Use of register assumed to ERROR
+ecp.asm(588) : Error A2183: Use of register assumed to ERROR
+ecp.asm(589) : Warning A4073: Size not specified, assuming: BYTE
+ecp.asm(592) : Error A2183: Use of register assumed to ERROR
+ecp.asm(624) : Error A2183: Use of register assumed to ERROR
+ecp.asm(627) : Error A2183: Use of register assumed to ERROR

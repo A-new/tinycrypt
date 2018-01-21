@@ -1,0 +1,20 @@
+all:
+		cd aes && $(MAKE) all && ./test
+		cd belt && $(MAKE) all && ./test
+		cd blowfish && $(MAKE) all && ./test
+		cd chaskey && $(MAKE) all && ./test
+		cd des && $(MAKE) all && ./test
+		cd kuznyechik && $(MAKE) all && ./test
+		cd lea && $(MAKE) all && ./test
+		cd noekeon && $(MAKE) all && ./test
+		cd present && $(MAKE) all && ./test
+		cd rc5 && $(MAKE) all && ./test
+		cd rc6 && $(MAKE) all && ./test
+		cd serpent && $(MAKE) all && ./test
+		cd sm4 && $(MAKE) all && ./test
+		cd sparx && $(MAKE) all && ./test
+		cd speck && $(MAKE) all && ./test
+		cd tea && $(MAKE) all && ./test
+		cd threefish && $(MAKE) all && ./test
+		cd twofish && $(MAKE) all && ./test
+		cd xtea && $(MAKE) all && ./test
