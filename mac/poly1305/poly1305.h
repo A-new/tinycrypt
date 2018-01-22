@@ -36,8 +36,8 @@
 extern "C" {
 #endif
 
-void poly1305_key_gen(void*, const void*, const void*);
-void poly1305_mac (uint8_t*, const uint8_t*, uint32_t, const uint8_t*);
+  void poly1305_key_gen(void*, const void*, const void*);
+  void poly1305_mac (uint8_t*, const uint8_t*, uint32_t, const uint8_t*);
     
 #ifdef __cplusplus
 }
