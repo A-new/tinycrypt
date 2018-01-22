@@ -298,5 +298,4 @@ pm_l7:
     mov    cl, 196
     add    esp, ecx          ; release stack
     popad                    ; restore registers
-    ret
-    
+    ret    
