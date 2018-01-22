@@ -167,5 +167,3 @@ void poly1305_key_gen(
   cc20_stream(&s, key, ctr, nonce);
   memcpy (out, s.b, 32);
 }
-
-
