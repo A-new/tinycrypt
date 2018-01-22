@@ -6,7 +6,9 @@
 #ifndef RC6_H
 #define RC6_H
 
-#include "../../macros.h"
+#include <stdint.h>
+
+#include "macros.h"
 
 #define RC6_ROUNDS 20
 #define RC6_KR     (2*(RC6_ROUNDS+2))
@@ -49,6 +51,11 @@ extern "C" {
   
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef USE_ASM
+#define rc6_setkey(x, y, z) rc6_setkeyx (x, y, z)
+#define rc6_crypt(w, x, y, z) rc6_cryptx (w, x, y, z)
 #endif
 
 #endif
