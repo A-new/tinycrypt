@@ -171,5 +171,3 @@ void poly1305_mac (
     out[i] = acc[i];
   }
 }
-
-
