@@ -79,17 +79,17 @@ int main (int argc, char *argv[])
       rc5_crypt (&ctx, pt1, ct2, RC5_ENCRYPT);
     #endif
     
-    bin2hex("ciphertext", ct2, RC5_BLK_LEN);  
+    //bin2hex("\nciphertext", ct2, RC5_BLK_LEN);  
     
     e=memcmp (ct1, ct2, RC5_BLK_LEN);
 
-    printf ("\n\nRC5 encryption test #%i %s", 
+    printf ("RC5 encryption test #%i %s\n", 
       (i+1), e==0?"passed":"failed");
       
     rc5_setkey (&ctx, key);  
     rc5_crypt (&ctx, ct2, pt2, RC5_DECRYPT);
 
-    bin2hex("ciphertext", pt2, RC5_BLK_LEN);  
+    //bin2hex("\nciphertext", pt2, RC5_BLK_LEN);  
     
     e=memcmp (pt1, pt2, RC5_BLK_LEN);
     printf ("RC5 decryption test #%i %s\n", 

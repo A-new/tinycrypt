@@ -57,7 +57,7 @@ struc pushad_t
   .size:
 endstruc
 
-%define RC5_BLK_LEN 8     ; 64-bits
+%define RC5_BLK_LEN 8     ;  64-bits
 %define RC5_KEYLEN  16    ; 128-bits
 %define RC5_ROUNDS  12    ; 20 to strengthen against weakness
 
