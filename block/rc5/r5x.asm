@@ -32,7 +32,7 @@
 ;
 ; https://people.csail.mit.edu/rivest/Rivest-rc5rev.pdf
 ;
-; size: 118 bytes for single call
+; size: 114 bytes for single call
 ;
 ; global calls use cdecl convention
 ;
@@ -67,33 +67,31 @@ endstruc
 _xrc5_cryptx:
 xrc5_cryptx:
     pushad
-    mov    edi, [esp+32+4]    ; edi = key / L
+    mov    ebx, [esp+32+4]    ; edi = key / L
     mov    esi, [esp+32+8]    ; esi = data
-    xor    ebx, ebx           ; ebx = 0
     xor    ecx, ecx           ; ecx = 0
-    mul    ecx                ; eax = 0, edx = 0
-    mov    cl, 256-4          ; allocate 256 bytes
+    mov    cl, RC5_KR*4       ; allocate space for sub keys
     sub    esp, ecx           ; esp = S
-    
     ; initialize S / sub keys    
-    pushad                    ; save all
-    mov    edi, [esp+_esp]    ; edi = S
+    mov    edi, esp           ; edi = S
     mov    eax, 0xB7E15163    ; eax = RC6_P
     mov    cl, RC5_KR    
 r_l0:
     stosd                     ; S[i] = A
     add    eax, 0x9E3779B9    ; A += RC6_Q
     loop   r_l0
-    popad                     ; restore all    
+    mov    edi, ebx
+    mul    ecx                ; eax = 0, edx = 0
+    xor    ebx, ebx           ; ebx = 0
 r_lx:    
     xor    ebp, ebp           ; i % RC6_KR    
 r_l1:
     cmp    ebp, RC5_KR
     je     r_lx    
-    
-    ; A = S[i%RC6_KR] = ROTL32(S[i%RC6_KR] + A+B, 3); 
+
+    ; A = S[i%RC6_KR] = ROTL32(S[i%RC5_KR] + A+B, 3); 
     add    eax, ebx           ; A += B
-    add    eax, [esp+ebp*4]   ; A += S[i%RC6_KR]
+    add    eax, [esp+ebp*4]   ; A += S[i%RC5_KR]
     rol    eax, 3             ; A  = ROTL32(A, 3)
     mov    [esp+ebp*4], eax   ; S[i%RC6_KR] = A
     
@@ -121,7 +119,7 @@ r_l1:
     mov    dl, RC5_KR - 1   
     jmp    mix_key
 enc_loop:
-    ; A = ROTL32(A ^ B, B) + key->x[i+2];
+    ; A = ROTL32(A ^ B, B) + *k*; k++;
     xor   eax, ebx            ; A ^= B 
     mov   ecx, ebx            ; ecx = B 
     rol   eax, cl             ; A = ROTL32(A ^ B, B)
@@ -132,11 +130,10 @@ mix_key:
     dec   edx
     jnz   enc_loop    
     
-    pop   edi                 ; restore ptr to data    
+    pop   esp                 ; restore ptr to data    
+    xchg  esp, edi
     stosd                     ; x->w[0] = A
     xchg  eax, ebx
-    stosd                     ; x->w[1] = B
-    mov   dl, 256-4           ; edx = 256 
-    add   esp, edx            
+    stosd                     ; x->w[1] = B         
     popad
     ret
