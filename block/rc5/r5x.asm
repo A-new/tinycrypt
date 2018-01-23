@@ -47,20 +47,6 @@
   global _xrc5_cryptx
 %endif
 
-struc pushad_t
-  _edi resd 1
-  _esi resd 1
-  _ebp resd 1
-  _esp resd 1
-  _ebx resd 1
-  _edx resd 1
-  _ecx resd 1
-  _eax resd 1
-  .size:
-endstruc
-
-%define RC5_BLK_LEN 8     ;  64-bits
-%define RC5_KEYLEN  16    ; 128-bits
 %define RC5_ROUNDS  12    ; 20 to strengthen against weakness
 
 %define RC5_KR      (2*(RC5_ROUNDS+1))

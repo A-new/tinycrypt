@@ -40,6 +40,12 @@
 
         bits 32
 
+
+        %ifndef BIN
+          global xrc6_cryptx
+          global _xrc6_cryptx
+        %endif
+        
 %define RC6_ROUNDS 20
 %define RC6_KR     (2*(RC6_ROUNDS+2))
 
@@ -47,14 +53,6 @@
 %define B ebx
 %define C edx
 %define D ebp
-
-%define S edi
-%define L esp
-
-        %ifndef BIN
-          global xrc6_cryptx
-          global _xrc6_cryptx
-        %endif
         
 xrc6_cryptx:
 _xrc6_cryptx:

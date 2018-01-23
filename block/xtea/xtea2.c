@@ -35,8 +35,7 @@ void xtea_encrypt(uint32_t rnds, void *key, void *buf) {
     uint32_t *k=(uint32_t*)key;
     uint32_t *v=(uint32_t*)buf;
     
-    v0 = v[0];
-    v1 = v[1];
+    v0 = v[0]; v1 = v[1];
     
     for (i=0; i<rnds; i++) {
       for (j=0; j<2; j++) {
@@ -49,6 +48,5 @@ void xtea_encrypt(uint32_t rnds, void *key, void *buf) {
         XCHG(v0, v1);
       }
     }
-    v[0] = v0;
-    v[1] = v1;
+    v[0] = v0; v[1] = v1;
 }

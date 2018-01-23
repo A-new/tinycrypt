@@ -62,34 +62,27 @@ int run_tests (void)
 {
   int i, clen, fails=0;
 
-  des_blk ct1, ct2, pt1, key;
+  w64_t   ct1, ct2, pt1, key;
   des_ctx ctx;
   
   for (i=0; i<sizeof (test_keys)/sizeof(char*); i++)
   { 
-    hex2bin (key.v8, test_keys[i]);
-    clen=hex2bin (ct1.v8, test_ct[i]);
-    hex2bin (pt1.v8, test_pt[i]);
+    hex2bin (key.b, test_keys[i]);
+    clen=hex2bin (ct1.b, test_ct[i]);
+    hex2bin (pt1.b, test_pt[i]);
     
-    //des_enc (ct2.v8, pt1.v8, key.v8);
-    des_setkey(&ctx, key.v8);
-    /*for (j=0; j<4; j++)
-    {
-      printf ("\n%08X %08X", ctx.keys[i].v32[0], ctx.keys[i].v32[1]);
-    }*/
+    des_setkey(&ctx, key.b);
+    des_enc (&ctx, pt1.b, ct2.b, DES_ENCRYPT);
     
-    des_enc (&ctx, pt1.v8, ct2.v8, DES_ENCRYPT);
-    //des_enc (&ctx, ct2.v8, pt2.v8, DES_DECRYPT);
-    
-    if (memcmp (ct1.v8, ct2.v8, clen)==0) {
+    if (memcmp (ct1.b, ct2.b, clen)==0) {
       printf ("\nPassed Encryption/Decryption test #%i %08X %08X", 
-        (i+1), ct1.v32[0], ct2.v32[0]);
+        (i+1), ct1.w[0], ct2.w[0]);
     } else {
       fails++;
       printf ("\nFailed test #%i : "
           "Got %08X %08X instead of %08X %08X for %08X %08X", (i+1), 
-          ct2.v32[0], ct2.v32[1], ct1.v32[0], ct1.v32[1],
-          pt1.v32[0], pt1.v32[1]);
+          ct2.w[0], ct2.w[1], ct1.w[0], ct1.w[1],
+          pt1.w[0], pt1.w[1]);
           
     }
   }

@@ -144,155 +144,151 @@ uint8_t shiftkey_permtab[]={0x07,
 // derived from work by Svend Olaf Mikkelsen
 // http://www.partitionsupport.com/
 //
-void des_str2key (void *str, des_blk* key) {
-  uint32_t x1, r1, *p1;
-  des_blk  *s=(des_blk*)str;
-  int      i, j;
+void des_str2key (void *str, w64_t* key) {
+    uint32_t x1, r1, *p1;
+    w64_t  *s=(w64_t*)str;
+    int      i, j;
 
-  for (i=0; i<2; i++) {
-    p1=(uint32_t*)&s->v8[i*3];
-    x1=SWAP32(*p1);
-    if (i==1) {
-      x1=ROTL32 (x1, 4);
+    for (i=0; i<2; i++) {
+      p1=(uint32_t*)&s->b[i*3];
+      x1=SWAP32(*p1);
+      if (i==1) {
+        x1=ROTL32 (x1, 4);
+      }
+      r1=0;
+      for (j=0; j<4; j++) {
+        r1 = ROTL32((r1 | (x1 & 0xFE000000)), 8);
+        x1 <<= 7;
+      }
+      key->w[i] = SWAP32(r1);
     }
-    r1=0;
-    for (j=0; j<4; j++) {
-      r1 = ROTL32((r1 | (x1 & 0xFE000000)), 8);
-      x1 <<= 7;
-    }
-    key->v32[i] = SWAP32(r1);
-  }
 }
 
 /*********************************************************/
-void permute (uint8_t ptbl[], void *input, des_blk *out) 
+void permute (uint8_t ptbl[], void *input, w64_t *out) 
 {
-  uint8_t i, j, x, t, ob;
-  des_blk *in=(des_blk*)input;
-  uint8_t *p=(uint8_t*)ptbl;
-  
-  // we always expect out to absorb 8 bytes
-  memset (out->v8, 0, 8);
-  
-  // load destination buffer in bytes
-  ob = *p++;
-  
-  // for i=0 to output bytes
-  for (i=0; i<ob; i++) 
-  {
-    t=0; 
-    // permutate 8-bits
-    for (j=0; j<8; j++) 
+    uint8_t i, j, x, t, ob;
+    w64_t *in=(w64_t*)input;
+    uint8_t *p=(uint8_t*)ptbl;
+    
+    // we always expect out to absorb 8 bytes
+    memset (out->b, 0, 8);
+    
+    // load destination buffer in bytes
+    ob = *p++;
+    
+    // for i=0 to output bytes
+    for (i=0; i<ob; i++) 
     {
-      x = *p++;
-      t <<= 1;
-      if ((in->v8[x / 8]) & (0x80 >> (x & 7)) ){
-        t |= 0x01;
+      t=0; 
+      // permute 8-bits
+      for (j=0; j<8; j++) 
+      {
+        x = *p++;
+        t <<= 1;
+        if ((in->b[x / 8]) & (0x80 >> (x & 7)) ){
+          t |= 0x01;
+        }
       }
+      out->b[i]=t;
     }
-    out->v8[i]=t;
-  }
 }
 
 /*****************************************************/
 
-uint32_t des_f (uint32_t *x, des_blk *key) {
-  uint8_t  i, x0, x1;
-  uint32_t t=0;
-  uint8_t  *sbp;
-  des_blk  t0, t1;
-  
-  // permute 1 half of data
-  permute (e_permtab, x, &t0);
-  
-  // mix key with data
-  for (i=0; i<7; i++) {
-    t0.v8[i] ^= key->v8[i];
-  }
+uint32_t des_f (uint32_t *x, w64_t *key) {
+    uint8_t  i, x0, x1;
+    uint32_t t=0;
+    uint8_t  *sbp;
+    w64_t  t0, t1;
+    
+    // permute 1 half of data
+    permute (e_permtab, x, &t0);
+    
+    // mix key with data
+    for (i=0; i<7; i++) {
+      t0.b[i] ^= key->b[i];
+    }
 
-  permute (splitin6bitword_permtab, &t0, &t1);
-  sbp=sbox;
-  
-  for (i=0; i<8; ++i) 
-  {
-    x0=t1.v8[i];
-    x1 = sbp[x0 >> 1];
-    x1 = (x0 & 1) ? x1 & 0x0F : x1 >> 4;
-    t <<= 4;
-    t |= x1;
-    sbp += 32;
-  }
-  t=SWAP32(t);
+    permute (splitin6bitword_permtab, &t0, &t1);
+    sbp=sbox;
+    
+    for (i=0; i<8; ++i) 
+    {
+      x0   = t1.b[i];
+      x1   = sbp[x0 >> 1];
+      x1   = (x0 & 1) ? x1 & 0x0F : x1 >> 4;
+      t  <<= 4;
+      t   |= x1;
+      sbp += 32;
+    }
+    t = SWAP32(t);
 
-  permute (p_permtab, &t, &t0);
-  return t0.v32[0];
+    permute (p_permtab, &t, &t0);
+    return t0.w[0];
 }
 
 // create 16 subkeys for encryption/decryption
 void des_setkey (des_ctx *ctx, void *input)
 {
-  uint32_t rnd;
-  des_blk *k, *ks;
-  des_blk k1, k2;
-  
-  ks=&ctx->keys[0];
-  
-  permute (pc1_permtab, input, &k1);
-  
-  for (rnd=0; rnd<16; rnd++)
-  {
-    permute (shiftkey_permtab, &k1, &k2);
-    k=&k2;
-    if (ROTTABLE & (1 << rnd)) {
-      permute (shiftkey_permtab, &k2, &k1);
-      k=&k1;
+    uint32_t rnd;
+    w64_t *k, *ks;
+    w64_t k1, k2;
+    
+    ks=&ctx->keys[0];
+    
+    permute (pc1_permtab, input, &k1);
+    
+    for (rnd=0; rnd<16; rnd++)
+    {
+      permute (shiftkey_permtab, &k1, &k2);
+      k=&k2;
+      if (ROTTABLE & (1 << rnd)) {
+        permute (shiftkey_permtab, &k2, &k1);
+        k=&k1;
+      }
+      permute (pc2_permtab, k, ks++);
+      memcpy (k1.b, k->b, w64_t_LEN);
     }
-    permute (pc2_permtab, k, ks++);
-    memcpy (k1.v8, k->v8, DES_BLK_LEN);
-  }
 }
 
 // encrypt/decrypt 64-bits of input
 void des_enc (des_ctx *ctx, void *in, 
   void *out, int enc)
 {
-  int      rnd, ofs=1;
-  des_blk  t0;
-  uint32_t L, R, T;
-  
-  des_blk *key=&ctx->keys[0];
-  
-  if (enc==DES_DECRYPT) {
-    ofs = -1;
-    key += 15;
-  }
-  // apply initial permutation to input
-  permute (ip_permtab, in, &t0);
-  
-  L=t0.v32[0];
-  R=t0.v32[1];
-  
-  for (rnd=0; rnd<DES_ROUNDS; rnd++)
-  {
-    L ^= des_f (&R, key);
-    // swap
-    T=L; 
-    L=R; 
-    R=T;
-    key+=ofs;
-  }
-  t0.v32[0]=R;
-  t0.v32[1]=L;
-  
-  // apply inverse permutation
-  permute (inv_ip_permtab, &t0, out);
+    int      rnd, ofs=1;
+    w64_t    p;
+    uint32_t L, R, t;
+    
+    w64_t *key=&ctx->keys[0];
+    
+    if (enc==DES_DECRYPT) {
+      ofs  = -1;
+      key += 15;
+    }
+    // apply initial permutation to input
+    permute (ip_permtab, in, &p);
+    
+    L = p.w[0]; R = p.w[1];
+    
+    for (rnd=0; rnd<DES_ROUNDS; rnd++)
+    {
+      L ^= des_f (&R, key);
+      // swap
+      XCHG(L, R);
+      key += ofs;
+    }
+    p.w[0] = R; p.w[1] = L;
+    
+    // apply inverse permutation
+    permute (inv_ip_permtab, &p, out);
 }
 
 /* perform Triple-DES encryption
 void des3_enc (void *out, void *in, 
   void *key1, void *key2, void *key3)
 {
-  des_blk c1, c2;
+  w64_t c1, c2;
   des_ctx ctx1, ctx2, ctx3;
   
   // encrypt in to c1
@@ -312,7 +308,7 @@ void des3_enc (void *out, void *in,
 void des3_dec (void *out, void *in, 
   void *key1, void *key2, void *key3)
 {
-  des_blk c1, c2;
+  w64_t c1, c2;
   des_ctx ctx;
   
   // encrypt in to c1

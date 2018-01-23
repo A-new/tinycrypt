@@ -32,7 +32,7 @@
 
 #include "../../macros.h"
 
-#define DES_BLK_LEN 8
+#define w64_t_LEN 8
 #define DES_ROUNDS 16
 
 #define ROTTABLE      0x7EFC 
@@ -41,14 +41,8 @@
 #define DES_ENCRYPT 0
 #define DES_DECRYPT 1
 
-typedef union _des_t {
-  uint8_t v8[DES_BLK_LEN];
-  uint32_t v32[DES_BLK_LEN/4];
-  uint64_t v64;
-} des_blk;
-
 typedef union _des_ctx_t {
-	des_blk keys[16+1];
+	w64_t keys[16+1];
 } des_ctx;
   
 /* the FIPS 46-3 (1999-10-25) name for triple DES is triple data encryption algorithm so TDEA.
@@ -58,11 +52,11 @@ typedef union _des_ctx_t {
 extern "C" {
 #endif
 
-  void des_str2key (void*, des_blk*);
+  void des_str2key (void*, w64_t*);
 	void des_setkey (des_ctx*, void *);
   void des_enc (des_ctx*, void*, void*, int);
 
-  void des_str2keyx (void*, des_blk*);
+  void des_str2keyx (void*, w64_t*);
 	void des_setkeyx (des_ctx*, void *);
   void des_encx (des_ctx*, void*, void*, int);
 	
