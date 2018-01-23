@@ -32,7 +32,9 @@
 ;
 ; https://people.csail.mit.edu/rivest/Rivest-rc5rev.pdf
 ;
-; size: 114 bytes for single call
+; size: 114 bytes for single call -- trashes the key buffer --
+;
+; xrc5_cryptx(void *key, void *data)
 ;
 ; global calls use cdecl convention
 ;
