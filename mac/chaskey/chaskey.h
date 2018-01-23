@@ -32,11 +32,6 @@
   
 #include "../../macros.h"
 
-typedef union state_t {
-  uint8_t  b[16];
-  uint32_t w[4];
-} state;
- 
 #ifdef __cplusplus
 extern "C" {
 #endif

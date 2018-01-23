@@ -32,77 +32,67 @@
 // setup the key
 void cc20_setkey(cc20_ctx *c, void *key, void *nonce)
 {
-    cc20_blk *iv=(cc20_blk*)nonce;
-    int      i;
+    int i;
     
-    // "expand 32-byte k"
-    c->s.w[0] = 0x61707865;
-    c->s.w[1] = 0x3320646E;
-    c->s.w[2] = 0x79622D32;
-    c->s.w[3] = 0x6B206574;
+    // constants are "expand 32-byte k"
+    c->w[0] = 0x61707865; c->w[1] = 0x3320646E;
+    c->w[2] = 0x79622D32; c->w[3] = 0x6B206574;
 
     // copy 256-bit key
-    for (i=0; i<32; i++) {
-      c->s.b[16+i] = ((uint8_t*)key)[i];
-    }
-    
-    // set 64-bit block counter and 64-bit nonce/iv
-    c->s.w[12] = 0;
-    c->s.w[13] = 0;
-    c->s.w[14] = iv->w[0];
-    c->s.w[15] = iv->w[1];
+    memcpy(&c->b[16], key, 32);
+  
+    // set 32-bit block counter and 96-bit nonce/iv
+    c->w[12] = 1;
+    memcpy(&c->w[13], nonce, 12);
 }
 
-// transforms block using ARX instructions
-void chacha_permute(cc20_blk *blk, uint16_t idx) 
+void F(uint32_t s[16])
 {
-    uint32_t a, b, c, d;
-    uint32_t *x=(uint32_t*)&blk->b;
+    int         i;
+    uint32_t    a, b, c, d, r, t, idx;
     
-    a = (idx         & 0xF);
-    b = ((idx >>  4) & 0xF);
-    c = ((idx >>  8) & 0xF);
-    d = ((idx >> 12) & 0xF);
+    uint16_t idx16[8]=
+    { 0xC840, 0xD951, 0xEA62, 0xFB73,    // column index
+      0xFA50, 0xCB61, 0xD872, 0xE943 };  // diagonal index
     
-    x[a] = x[a] + x[b]; 
-    x[d] = ROTL32(x[d] ^ x[a],16);
-    
-    x[c] = x[c] + x[d]; 
-    x[b] = ROTL32(x[b] ^ x[c],12);
-    
-    x[a] = x[a] + x[b]; 
-    x[d] = ROTL32(x[d] ^ x[a], 8);
-    
-    x[c] = x[c] + x[d]; 
-    x[b] = ROTL32(x[b] ^ x[c], 7);
+    for (i=0; i<8; i++) {
+      idx = idx16[i];
+        
+      a = (idx         & 0xF);
+      b = ((idx >>  4) & 0xF);
+      c = ((idx >>  8) & 0xF);
+      d = ((idx >> 12) & 0xF);
+  
+      r = 0x07080C10;
+      
+      // The quarter-round
+      do {
+        s[a]+= s[b]; 
+        s[d] = ROTL32(s[d] ^ s[a], r & 0xFF);
+        XCHG(c, a);
+        XCHG(d, b);
+        r >>= 8;
+      } while (r != 0);
+    }    
 }
 
 // generate stream of bytes
-void cc20_stream (cc20_ctx *c, cc20_blk *x)
+void cc20_stream (cc20_ctx *c, w512_t *x)
 {
-    int i, j;
+    int i;
 
-    // 16-bit integers of each index
-    uint16_t idx16[8]=
-    { 0xC840, 0xD951, 0xEA62, 0xFB73, 
-      0xFA50, 0xCB61, 0xD872, 0xE943 };
-    
     // copy state to x
-    for (i=0; i<16; i++) { 
-      x->w[i] = c->s.w[i];
-    }
+    memcpy(x->b, c->b, 64);
     // apply 20 rounds
     for (i=0; i<20; i+=2) {
-      for (j=0; j<8; j++) {
-        chacha_permute(x, idx16[j]);
-      }
+      F(x->w);
     }
     // add state to x
     for (i=0; i<16; i++) {
-      x->w[i] += c->s.w[i];
+      x->w[i] += c->w[i];
     }
     // update block counter
-    c->s.q[6]++;
+    c->w[12]++;
     // stopping at 2^70 bytes per nonce is user's responsibility
 }
 
@@ -110,21 +100,21 @@ void cc20_stream (cc20_ctx *c, cc20_blk *x)
 void cc20_encrypt (uint32_t len, void *in, cc20_ctx *ctx) 
 {
     uint32_t i, r;
-    cc20_blk stream;
+    w512_t   s;
     uint8_t  *p=(uint8_t*)in;
     
     while (len) {      
-      cc20_stream(ctx, &stream);
+      cc20_stream(ctx, &s);
       
       r=(len>64) ? 64 : len;
       
       // xor input with stream
       for (i=0; i<r; i++) {
-        p[i] ^= stream.b[i];
+        p[i] ^= s.b[i];
       }
     
       len -= r;
-      p += r;
+      p   += r;
     }
 }
 

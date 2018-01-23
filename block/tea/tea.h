@@ -39,20 +39,6 @@
 
 #define TEA_ROUNDS 32
 
-typedef union tea_blk_t {
-  uint8_t b[8];
-  uint16_t w[4];
-  uint32_t d[2];
-  uint64_t q;
-} tea_blk;
-
-typedef union tea_key_t {
-  uint8_t b[16];
-  uint16_t w[8];
-  uint32_t d[4];
-  uint64_t q[2];  
-} tea_key;
-
 #ifdef __cplusplus
 extern "C" {
 #endif

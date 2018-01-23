@@ -35,15 +35,7 @@
 
 #define S20_BLK_LEN 64
 
-typedef union _s20_blk_t {
-  uint8_t  b[S20_BLK_LEN];
-  uint32_t w[S20_BLK_LEN/4];
-  uint64_t q[S20_BLK_LEN/8];
-} s20_blk;
-
-typedef struct _s20_ctx_t {
-  s20_blk s;
-} s20_ctx;
+typedef w512_t s20_ctx;
 
 #ifdef __cplusplus
 extern "C" {

@@ -102,11 +102,11 @@ void RABBIT_next_state(RABBIT_state *s)
 void RABBIT_setkey(RABBIT_ctx *c, const void *key)
 {
     uint32_t k0, k1, k2, k3, i;
-    rabbit_blk *k=(rabbit_blk*)key;
+    w128_t   *k=(w128_t*)key;
 
     // Generate four subkeys
-    k0 = k->d[0]; k1 = k->d[1];
-    k2 = k->d[2]; k3 = k->d[3];
+    k0 = k->w[0]; k1 = k->w[1];
+    k2 = k->w[2]; k3 = k->w[3];
 
     // Generate initial state variables
     c->m.x[0] = k0; c->m.x[2] = k1;
@@ -148,12 +148,12 @@ void RABBIT_setkey(RABBIT_ctx *c, const void *key)
 // IV setup
 void RABBIT_setiv(RABBIT_ctx *c, const void* iv)
 {
-    rabbit_blk *v=(rabbit_blk*)iv;
+    w128_t *v=(w128_t*)iv;
     uint32_t   sv[4];
     int        i;
 
-    // Generate four subvectors
-    sv[0] = v->d[0]; sv[2] = v->d[1];
+    // Generate four sub-vectors
+    sv[0] = v->w[0]; sv[2] = v->w[1];
 
     sv[1] = (sv[0]>>16) | (sv[2]&0xFFFF0000);
     sv[3] = (sv[2]<<16) | (sv[0]&0x0000FFFF);
@@ -168,29 +168,29 @@ void RABBIT_setiv(RABBIT_ctx *c, const void* iv)
 
     // Iterate the system four times
     for (i=0; i<4; i++) {
-     RABBIT_next_state(&c->w);
+      RABBIT_next_state(&c->w);
     }
 }
 
 // Encrypt/decrypt a message of any size
 void RABBIT_crypt(RABBIT_ctx *c, void* input, uint32_t inlen)
 {
-    uint32_t   i;
-    rabbit_blk x;
-    uint8_t    *in=(uint8_t*)input;
+    uint32_t i;
+    w128_t   x;
+    uint8_t  *in=(uint8_t*)input;
 
     while (inlen) {
       // update state
       RABBIT_next_state(&c->w);
 
       for (i=0; i<4; i++) {
-        x.d[i] = c->w.x[i<<1];
+        x.w[i] = c->w.x[i<<1];
       }
 
-      x.d[0] ^= (c->w.x[5]>>16) ^ (c->w.x[3]<<16);
-      x.d[1] ^= (c->w.x[7]>>16) ^ (c->w.x[5]<<16);
-      x.d[2] ^= (c->w.x[1]>>16) ^ (c->w.x[7]<<16);
-      x.d[3] ^= (c->w.x[3]>>16) ^ (c->w.x[1]<<16);
+      x.w[0] ^= (c->w.x[5]>>16) ^ (c->w.x[3]<<16);
+      x.w[1] ^= (c->w.x[7]>>16) ^ (c->w.x[5]<<16);
+      x.w[2] ^= (c->w.x[1]>>16) ^ (c->w.x[7]<<16);
+      x.w[3] ^= (c->w.x[3]>>16) ^ (c->w.x[1]<<16);
 
       for (i=0; i<16 && inlen!=0; i++) {
         *in++ ^= x.b[i];

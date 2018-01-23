@@ -76,9 +76,9 @@ void dump_hex(void *b, int len)
 
 void enc_test (void)
 {
-  int i;
-  tea_blk pt, ct;
-  tea_key key;
+  int    i;
+  w64_t  pt, ct;
+  w128_t key;
   
   printf ("\nRunning Encrypt tests");
   memset (key.b, 0, TEA_KEY_LEN);
@@ -102,9 +102,9 @@ void enc_test (void)
 
 int run_tests (void)
 {
-  int i, fails=0;
-  tea_blk pt, ct;
-  tea_key key;
+  int    i, fails=0;
+  w64_t  pt, ct;
+  w128_t key;
   
   for (i=0; i<sizeof(test_plaintexts)/sizeof(char*); i++)
   {
@@ -148,7 +148,8 @@ void dump (char txt[], uint8_t in[], int len) {
 
 int main (int argc, char *argv[])
 {
-  run_tests();
-  enc_test();
+  int f = run_tests();
+  if (!f) printf("Passed Test OK\n");
+  //enc_test();
   return 0;
 }

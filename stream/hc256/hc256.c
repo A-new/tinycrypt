@@ -72,6 +72,9 @@ uint32_t hc256_generate(hc_ctx* c)
     return r;
 }
 
+#define SIG0(x)(ROTR32((x),  7) ^ ROTR32((x), 18) ^ ((x) >>  3))
+#define SIG1(x)(ROTR32((x), 17) ^ ROTR32((x), 19) ^ ((x) >> 10))
+
 // both key and iv must be 32 bytes each / 256-bits!
 void hc256_setkey(hc_ctx *c, void *kiv)
 {

@@ -35,21 +35,21 @@
 /**
  * core encryption functions start here 
  */
-void whiten (tf_blk *in, uint32_t *keys)
+void whiten (void *in, uint32_t *keys)
 {
-    int i;
+    int      i;
+    uint32_t *x=(uint32_t*)in;
     
     for (i=0; i<4; i++) {
-      in->v32[i] ^= keys[i];
+      x[i] ^= keys[i];
     }
 }
 
 uint32_t mds(uint32_t w)
 {
-    vector   x;
+    w32_t acc, x;
     int i;
     uint32_t j, x0, y;
-    vector acc;
 
   // Maximum Distance Separable code
   // Twofish uses a single 4-by-4 MDS matrix over GF(2**8).
@@ -60,45 +60,45 @@ uint32_t mds(uint32_t w)
     { 0xEF, 0x5B, 0x01, 0xEF },
     { 0xEF, 0x01, 0xEF, 0x5B } };
     
-    x.v32 = w;
-    acc.v32 = 0;
+    x.w = w;
+    acc.w = 0;
    
     for (i=0; i<4; i++) 
     {
       for (j=0; j<4; j++) 
       {
         x0 = matrix[i][j];
-        y  = x.v8[j];
+        y  = x.b[j];
         while (y)
         {
           if (x0 > (x0 ^ 0x169))
             x0 ^= 0x169;
           if (y & 1)
-            acc.v8[i] ^= x0;
+            acc.b[i] ^= x0;
           x0 <<= 1;
           y >>= 1;
         }
       }
     }
-    return acc.v32;
+    return acc.w;
 }
 
 // The G function
 uint32_t round_g(tf_ctx *ctx, uint32_t w)
 {
-    vector x;
+    w32_t    x;
     uint32_t i;
     uint8_t *sbp;
     
-    x.v32 = w;
+    x.w = w;
 
     sbp=&ctx->sbox[0];
     
     for (i=0; i<4; i++) {
-      x.v8[i] = sbp[x.v8[i]];
+      x.b[i] = sbp[x.b[i]];
       sbp += 256;
     }
-    return mds(x.v32);
+    return mds(x.w);
 }
 
 // compute (c * x^4) mod (x^4 + (a + 1/a) * x^3 + a * x^2 + (a + 1/a) * x + 1)
@@ -199,34 +199,34 @@ void tf_init(tf_ctx *ctx)
 // The H function
 uint32_t round_h(tf_ctx *ctx, uint32_t x_in, uint32_t *L)
 {
-    int    i, j;
+    int      i, j;
     uint32_t r=0x9C53A000;
-    vector x;
-    uint8_t *qbp=(uint8_t*)&ctx->qbox[0][0];
+    w32_t    x;
+    uint8_t  *qbp=(uint8_t*)&ctx->qbox[0][0];
     
-    x.v32 = x_in * 0x01010101;
+    x.w = x_in * 0x01010101;
     
     for (i=4; i>=0; i--) 
     {
       for (j=0; j<4; j++)
       {
         r=ROTL32(r, 1);
-        x.v8[j] = qbp[((r & 1) << 8) + x.v8[j]];
+        x.b[j] = qbp[((r & 1) << 8) + x.b[j]];
       }
       if (i>0) {
-        x.v32 ^= L[(i-1)*2];
+        x.w ^= L[(i-1)*2];
       }
     }
-    return x.v32;
+    return x.w;
 }
 
 void tf_setkey(tf_ctx *ctx, void *key)
 {
     uint32_t key_copy[8];
-    vector x;
-    uint8_t *sbp;
+    w32_t    x;
+    uint8_t  *sbp;
     uint32_t *p=key_copy;
-    tf_key *mk=(tf_key*)key;
+    w128_t   *mk=(w128_t*)key;
     uint32_t A, B=0, T, i;
     
     tf_init(ctx);
@@ -236,7 +236,7 @@ void tf_setkey(tf_ctx *ctx, void *key)
 
     for (i=0; i<40;) 
     {
-      p=key_copy;
+      p = key_copy;
     calc_mds:
       A = mds(round_h(ctx, i++, p++));
       // swap
@@ -255,32 +255,32 @@ void tf_setkey(tf_ctx *ctx, void *key)
     p += 4;
 
     for (i=0; i<4; i++) {
-      *p = reedsolomon(mk->v64[i]);
+      *p = reedsolomon(mk->q[i]);
        p-= 2;
     }
     
     p += 2;
     
     for (i=0; i<256; i++) {
-      x.v32 = round_h(ctx, i, p);
+      x.w = round_h(ctx, i, p);
       sbp = &ctx->sbox[0];
       do {
-        sbp[i] = x.v8[0];
+        sbp[i] = x.b[0];
         sbp += 256;
-        x.v32 >>= 8;
-      } while (x.v32!=0);
+        x.w >>= 8;
+      } while (x.w!=0);
     }
 }
 
 // encrypt/decrypt 128-bits of data
 // encryption which inlines F function
-void tf_enc(tf_ctx *ctx, tf_blk *data, int enc)
+void tf_enc(tf_ctx *ctx, void *data, int enc)
 {
     int      i;
-    uint32_t A, B, C, D, T0, T1;
-    uint32_t *keys;
+    uint32_t A, B, C, D, T0, T1, t;
+    uint32_t *keys, *x=(uint32_t*)data;
 
-    whiten (data, &ctx->keys[enc*4]);
+    whiten (x, &ctx->keys[enc*4]);
     
     keys=(uint32_t*)&ctx->keys[8];
     
@@ -289,8 +289,8 @@ void tf_enc(tf_ctx *ctx, tf_blk *data, int enc)
     }
     
     // load data
-    A = data->v32[0]; B = data->v32[1];
-    C = data->v32[2]; D = data->v32[3];
+    A = x[0]; B = x[1];
+    C = x[2]; D = x[3];
     
     for (i=16; i>0; i--) 
     {
@@ -316,14 +316,13 @@ void tf_enc(tf_ctx *ctx, tf_blk *data, int enc)
         C ^= T0 + *keys--;
       }
       // swap
-      T0 = C; T1 = D;
-      C  = A;  D = B;
-      A  = T0; B = T1;
+      XCHG(A, C);
+      XCHG(B, D);
     }
 
     // save
-    data->v32[0]=C; data->v32[1]=D;
-    data->v32[2]=A; data->v32[3]=B;
+    x[0] = C; x[1] = D;
+    x[2] = A; x[3] = B;
     
     whiten (data, &ctx->keys[enc==TF_DECRYPT?0:4]);
 }

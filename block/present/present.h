@@ -30,64 +30,23 @@
 #ifndef PRESENT_H
 #define PRESENT_H
   
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
+#include "../../macros.h"
 
 #define PRESENT_RNDS 32
-
-#define U8V(v)  ((uint8_t)(v)  & 0xFFU)
-#define U16V(v) ((uint16_t)(v) & 0xFFFFU)
-#define U32V(v) ((uint32_t)(v) & 0xFFFFFFFFUL)
-#define U64V(v) ((uint64_t)(v) & 0xFFFFFFFFFFFFFFFFULL)
-
-#ifndef INTRIN
-#define ROTL8(v, n) \
-  (U8V((v) << (n)) | ((v) >> (8 - (n))))
-
-#define ROTL16(v, n) \
-  (U16V((v) << (n)) | ((v) >> (16 - (n))))
-
-#define ROTL32(v, n) \
-  (U32V((v) << (n)) | ((v) >> (32 - (n))))
-
-#define ROTL64(v, n) \
-  (U64V((v) << (n)) | ((v) >> (64 - (n))))
-
-#define ROTR8(v, n) ROTL8(v, 8 - (n))
-#define ROTR16(v, n) ROTL16(v, 16 - (n))
-#define ROTR32(v, n) ROTL32(v, 32 - (n))
-#define ROTR64(v, n) ROTL64(v, 64 - (n))
-
-#else
-#define ROTL32(v, n) _rotl(v, n)
-#define ROTR32(v, n) _rotr(v, n)
-#endif
   
 typedef struct _present_ctx_t {
     uint64_t key[PRESENT_RNDS];
 } present_ctx;
 
-typedef union _w32_t {
-    uint8_t  b[4];
-    uint32_t w;
-} w32_t;
- 
-typedef union _w64_t {
-    uint8_t  b[8];
-    uint32_t w[2];
-    uint64_t q;
-} w64_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void present128_setkey(present_ctx*, void*);
-void present128_setkeyx(present_ctx*, void*);
+  void present128_setkey(present_ctx*, void*);
+  void present128_setkeyx(present_ctx*, void*);
 
-void present128_encrypt(present_ctx*, void*);
-void present128_encryptx(present_ctx*, void*);
+  void present128_encrypt(present_ctx*, void*);
+  void present128_encryptx(present_ctx*, void*);
     
 #ifdef __cplusplus
 }

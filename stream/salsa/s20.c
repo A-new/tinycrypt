@@ -32,71 +32,66 @@
 // setup the key, must be 256-bits with 64-bit nonce
 void s20_setkey(s20_ctx *c, void *key, void *nonce)
 {
-    s20_blk *iv=(s20_blk*)nonce;
-    s20_blk *k=(s20_blk*)key;
+    w64_t  *iv=(w64_t*)nonce;
+    w256_t *k=(w256_t*)key;
     
-    c->s.w[ 0] = 0x61707865;
-    c->s.w[ 1] = k->w[0];
-    c->s.w[ 2] = k->w[1];
-    c->s.w[ 3] = k->w[2];
-    c->s.w[ 4] = k->w[3];
-    c->s.w[ 5] = 0x3320646E;
-    c->s.w[ 6] = iv->w[0];
-    c->s.w[ 7] = iv->w[1];
-    c->s.w[ 8] = 0;
-    c->s.w[ 9] = 0;
-    c->s.w[10] = 0x79622D32;
-    c->s.w[11] = k->w[4];
-    c->s.w[12] = k->w[5];
-    c->s.w[13] = k->w[6];
-    c->s.w[14] = k->w[7];
-    c->s.w[15] = 0x6B206574;
+    c->w[ 0] = 0x61707865;
+    // copy lower 128-bits of key
+    memcpy(&c->b[4], k->b, 16);
+    c->w[ 5] = 0x3320646E;
+    // set 64-bit nonce
+    c->w[ 6] = iv->w[0]; c->w[ 7] = iv->w[1];
+    // set 64-bit counter
+    c->w[ 8] = 0; c->w[ 9] = 0;
+    c->w[10] = 0x79622D32;
+    // copy upper 128-bits of key
+    memcpy(&c->b[44], &k->b[16], 16);
+    c->w[15] = 0x6B206574;
 }
 
-// transforms block using ARX instructions
-void s20_permute(s20_blk *blk, uint16_t idx) 
+void F(uint32_t s[16])
 {
-    uint32_t a, b, c, d;
-    uint32_t *x=(uint32_t*)&blk->b;
+    int      i;
+    uint32_t a, b, c, d, r, t, idx;
     
-    a = (idx         & 0xF);
-    b = ((idx >>  4) & 0xF);
-    c = ((idx >>  8) & 0xF);
-    d = ((idx >> 12) & 0xF);
+   // 16-bit integers of each index
+    uint16_t idx16[8]=
+    { 0xC840, 0x1D95, 0x62EA, 0xB73F,     // column index
+      0x3210, 0x4765, 0x98BA, 0xEDCF };   // diagonal index
+    
+    for (i=0; i<8; i++) {
+      idx = idx16[i];
+        
+      a = (idx         & 0xF);
+      b = ((idx >>  4) & 0xF);
+      c = ((idx >>  8) & 0xF);
+      d = ((idx >> 12) & 0xF);
+  
+      s[b] ^= ROTL32((s[a] + s[d]), 7);
+      s[c] ^= ROTL32((s[b] + s[a]), 9);
 
-    x[b] ^= ROTL32((x[a] + x[d]), 7);
-    x[c] ^= ROTL32((x[b] + x[a]), 9);
-    
-    x[d] ^= ROTL32((x[c] + x[b]),13);
-    x[a] ^= ROTL32((x[d] + x[c]),18);
+      s[d] ^= ROTL32((s[c] + s[b]),13);
+      s[a] ^= ROTL32((s[d] + s[c]),18);
+    }    
 }
 
 // generate stream of bytes
-void s20_stream (s20_ctx *c, s20_blk *x)
+void s20_stream (s20_ctx *c, w512_t *x)
 {
-    int i, j;
+    int i;
 
-    // 16-bit integers of each index
-    uint16_t idx16[8]=
-    { 0xC840, 0x1D95, 0x62EA, 0xB73F, 
-      0x3210, 0x4765, 0x98BA, 0xEDCF };
-    
-    // copy state to local space
-    for (i=0; i<16; i++) { 
-      x->w[i] = c->s.w[i];
-    }
+    // copy state to x
+    memcpy(x->b, c->b, 64);
     // apply 20 rounds
     for (i=0; i<20; i+=2) {
-      for (j=0; j<8; j++) {
-        s20_permute(x, idx16[j]);
-      }
+      F(x->w);
     }
     // add state to x
     for (i=0; i<16; i++) {
-      x->w[i] += c->s.w[i];
+      x->w[i] += c->w[i];
     }
     // update block counter
-    c->s.q[4]++;
+    c->q[4]++;
     // stopping at 2^70 bytes per nonce is user's responsibility
 }
 
@@ -104,18 +99,18 @@ void s20_stream (s20_ctx *c, s20_blk *x)
 void s20_encrypt (uint32_t len, void *buf, s20_ctx *c) 
 {
     uint32_t r, i;
-    s20_blk  stream;
+    w512_t   s;
     uint8_t  *p=(uint8_t*)buf;
     
     while (len) {      
-      s20_stream(c, &stream);
+      s20_stream(c, &s);
       
-      r=(len>64) ? 64 : len;
+      r = MIN(len, S20_BLK_LEN);
       
       for (i=0; i<r; i++) {
-        p[i] ^= stream.b[i];
+        p[i] ^= s.b[i];
       }      
       len -= r;
-      p += r;
+      p   += r;
     }
 }

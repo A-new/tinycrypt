@@ -43,31 +43,18 @@ typedef struct {
    RABBIT_state w;
 } RABBIT_ctx;
 
-typedef union rabbit_blk_t {
-  uint8_t b[16];
-  uint16_t w[8];
-  uint32_t d[4];
-  uint64_t q[2];
-} rabbit_blk;
-
-typedef union rw_t {
-  uint8_t b[4];
-  uint16_t w[2];
-  uint32_t d;
-} rw;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void RABBIT_setkey(RABBIT_ctx*, const void*);
-void RABBIT_setkeyx(RABBIT_ctx*, const void*);
+  void RABBIT_setkey(RABBIT_ctx*, const void*);
+  void RABBIT_setkeyx(RABBIT_ctx*, const void*);
 
-void RABBIT_setiv(RABBIT_ctx*, const void*);
-void RABBIT_setivx(RABBIT_ctx*, const void*);
+  void RABBIT_setiv(RABBIT_ctx*, const void*);
+  void RABBIT_setivx(RABBIT_ctx*, const void*);
 
-void RABBIT_crypt(RABBIT_ctx*, void*, uint32_t);
-void RABBIT_cryptx(RABBIT_ctx*, void*, uint32_t);
+  void RABBIT_crypt(RABBIT_ctx*, void*, uint32_t);
+  void RABBIT_cryptx(RABBIT_ctx*, void*, uint32_t);
 
 #ifdef __cplusplus
 }

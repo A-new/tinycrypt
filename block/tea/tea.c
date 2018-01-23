@@ -31,8 +31,8 @@
 
 void TEA_Encrypt (void *data, void *key, int enc)
 {
-  tea_blk *v=(tea_blk*)data;
-  tea_key *k=(tea_key*)key;
+  w64_t  *v=(w64_t*)data;
+  w128_t *k=(w128_t*)key;
   
   uint32_t v0, v1, i, sum=0x9e3779b9;
   
@@ -40,38 +40,38 @@ void TEA_Encrypt (void *data, void *key, int enc)
     sum <<= 5;
   }
   
-  v0 = (v->d[0]); 
-  v1 = (v->d[1]);
+  v0 = (v->w[0]); 
+  v1 = (v->w[1]);
   
   if (enc==TEA_ENCRYPT)
   {
     for (i=0; i<TEA_ROUNDS; i++) 
     {         
-      v0 += ((v1 << 4) + k->d[0]) ^ 
+      v0 += ((v1 << 4) + k->w[0]) ^ 
              (v1 + sum) ^ 
-            ((v1 >> 5) + k->d[1]);
+            ((v1 >> 5) + k->w[1]);
             
-      v1 += ((v0 << 4) + k->d[2]) ^ 
+      v1 += ((v0 << 4) + k->w[2]) ^ 
              (v0 + sum) ^ 
-            ((v0 >> 5) + k->d[3]);
+            ((v0 >> 5) + k->w[3]);
             
       sum += 0x9e3779b9;
     }
   } else {
     for (i=0; i<TEA_ROUNDS; i++) 
     {
-      v1 -= ((v0 << 4) + k->d[2]) ^ 
+      v1 -= ((v0 << 4) + k->w[2]) ^ 
              (v0 + sum) ^ 
-            ((v0 >> 5) + k->d[3]);
+            ((v0 >> 5) + k->w[3]);
               
-      v0 -= ((v1 << 4) + k->d[0]) ^ 
+      v0 -= ((v1 << 4) + k->w[0]) ^ 
              (v1 + sum) ^ 
-            ((v1 >> 5) + k->d[1]);
+            ((v1 >> 5) + k->w[1]);
             
       sum -= 0x9e3779b9;
     }  
   }
-  v->d[0] = (v0); 
-  v->d[1] = (v1);
+  v->w[0] = (v0); 
+  v->w[1] = (v1);
 }
 

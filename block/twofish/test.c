@@ -76,18 +76,18 @@ int main(void)
     //phex ("qbox", ctx.qbox, sizeof(ctx.qbox));
     //phex ("keys", ctx.keys, sizeof(ctx.keys));
     //phex ("sbox", ctx.sbox, sizeof(ctx.sbox));
-    phex ("plaintext vector", pt1, 16);
+    //phex ("plaintext vector", pt1, 16);
   
     // decrypt/encrypt plaintext
-    tf_enc (&ctx, (tf_blk*)pt1, TF_ENCRYPT);
+    tf_enc (&ctx, pt1, TF_ENCRYPT);
   
-    phex ("ciphertext vector", ct,  16);
-    phex ("ciphertext result", pt1, 16);
+    //phex ("ciphertext vector", ct,  16);
+    //phex ("ciphertext result", pt1, 16);
   
     e=memcmp (pt1, ct, 16)==0;
   
     // decrypt ciphertext
-    tf_enc (&ctx, (tf_blk*)pt1, TF_DECRYPT);
+    tf_enc (&ctx, pt1, TF_DECRYPT);
     d=memcmp (pt1, pt2, 16)==0;
   
     printf ("\nEncryption test #%i %s\nDecryption test #%i %s\n", 

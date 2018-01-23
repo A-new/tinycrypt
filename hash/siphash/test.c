@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "macros.h"
+#include "../../macros.h"
 
 #define PRINTHASH(n)                                                           \
     printf("    { ");                                                          \

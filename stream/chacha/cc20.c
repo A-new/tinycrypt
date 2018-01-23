@@ -32,31 +32,28 @@
 // setup the key
 void cc20_setkey(cc20_ctx *c, void *key, void *nonce)
 {
-    cc20_blk *iv=(cc20_blk*)nonce;
-    int      i;
+    int i;
     
-    // "expand 32-byte k"
-    c->s.w[0] = 0x61707865;
-    c->s.w[1] = 0x3320646E;
-    c->s.w[2] = 0x79622D32;
-    c->s.w[3] = 0x6B206574;
+    // constants are "expand 32-byte k"
+    c->w[0] = 0x61707865; c->w[1] = 0x3320646E;
+    c->w[2] = 0x79622D32; c->w[3] = 0x6B206574;
 
     // copy 256-bit key
-    memcpy(&c->s.b[16], key, 32);
+    memcpy(&c->b[16], key, 32);
   
     // set 32-bit block counter and 96-bit nonce/iv
-    c->s.w[12] = 1;
-    memcpy(&c->s.w[13], nonce, 12);
+    c->w[12] = 1;
+    memcpy(&c->w[13], nonce, 12);
 }
 
 void F(uint32_t s[16])
 {
-    int         i;
-    uint32_t    a, b, c, d, r, t, idx;
+    int      i;
+    uint32_t a, b, c, d, r, t, idx;
     
     uint16_t idx16[8]=
     { 0xC840, 0xD951, 0xEA62, 0xFB73,    // column index
-      0xFA50, 0xCB61, 0xD872, 0xE943 };  // diagnonal index
+      0xFA50, 0xCB61, 0xD872, 0xE943 };  // diagonal index
     
     for (i=0; i<8; i++) {
       idx = idx16[i];
@@ -68,7 +65,7 @@ void F(uint32_t s[16])
   
       r = 0x07080C10;
       
-      /* The quarter-round */
+      // The quarter-round
       do {
         s[a]+= s[b]; 
         s[d] = ROTL32(s[d] ^ s[a], r & 0xFF);
@@ -80,22 +77,22 @@ void F(uint32_t s[16])
 }
 
 // generate stream of bytes
-void cc20_stream (cc20_ctx *c, cc20_blk *x)
+void cc20_stream (cc20_ctx *c, w512_t *x)
 {
     int i;
 
     // copy state to x
-    memcpy(x->b, c->s.b, 64);
+    memcpy(x->b, c->b, 64);
     // apply 20 rounds
     for (i=0; i<20; i+=2) {
       F(x->w);
     }
     // add state to x
     for (i=0; i<16; i++) {
-      x->w[i] += c->s.w[i];
+      x->w[i] += c->w[i];
     }
     // update block counter
-    c->s.w[12]++;
+    c->w[12]++;
     // stopping at 2^70 bytes per nonce is user's responsibility
 }
 
@@ -103,21 +100,21 @@ void cc20_stream (cc20_ctx *c, cc20_blk *x)
 void cc20_encrypt (uint32_t len, void *in, cc20_ctx *ctx) 
 {
     uint32_t i, r;
-    cc20_blk stream;
+    w512_t   s;
     uint8_t  *p=(uint8_t*)in;
     
     while (len) {      
-      cc20_stream(ctx, &stream);
+      cc20_stream(ctx, &s);
       
       r=(len>64) ? 64 : len;
       
       // xor input with stream
       for (i=0; i<r; i++) {
-        p[i] ^= stream.b[i];
+        p[i] ^= s.b[i];
       }
     
       len -= r;
-      p += r;
+      p   += r;
     }
 }
 

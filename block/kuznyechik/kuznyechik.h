@@ -37,20 +37,6 @@
 
 #define KUZ_ROUNDS 10
 
-// my 128-bit datatype
-typedef union {	
-    uint8_t  b[16];
-    uint32_t w[4];
-    uint64_t q[2];
-} w128_t;
-
-// my 256-bit datatype
-typedef union {	
-    uint8_t  b[32];
-    uint32_t w[8];
-    uint64_t q[4];
-} w256_t;
-
 // cipher context
 typedef struct {
 	w128_t k[16];		// 10 round keys, array size increased to 16

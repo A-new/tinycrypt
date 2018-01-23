@@ -39,9 +39,9 @@
 extern "C" {
 #endif
 
-void chas_encrypt(int, void*, void*);
-void chaskey(void*, void*);
-void chas_encryptx(int, void*, void*);
+  void chas_encrypt(int, void*, void*);
+  void chaskey(void*, void*);
+  void chas_encryptx(int, void*, void*);
 
 #ifdef __cplusplus
 }

@@ -70,7 +70,7 @@ void chas_permute(uint32_t v[])
   } while (--i);
 }
 
-void chas_xor(state *out, const void *in, int len) {
+void chas_xor(w128_t *out, const void *in, int len) {
   int i;
 
   for (i=0; i<len; i++) {
@@ -81,7 +81,7 @@ void chas_xor(state *out, const void *in, int len) {
 void chas_mac (uint8_t *tag, 
     uint8_t *msg, uint32_t msglen, uint8_t *key) 
 {
-  state v;
+  w128_t v;
   int   len;
   
   // copy 16 bytes of key
@@ -92,7 +92,7 @@ void chas_mac (uint8_t *tag,
   {
     len = (msglen < 16) ? msglen : 16;
     
-    // xor state with msg data
+    // xor w128_t with msg data
     chas_xor(&v, msg, len);
 
     // final?

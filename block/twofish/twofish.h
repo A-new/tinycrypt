@@ -38,27 +38,6 @@
 #define TF_ENCRYPT 0
 #define TF_DECRYPT 1
 
-typedef union _vector_t { 
-  uint8_t   v8[4];
-  uint16_t v16[2];
-  uint32_t v32;
-  uint64_t v64;
-} vector;
-
-typedef union _tf_key_t {
-  uint8_t   v8[32];
-  uint16_t v16[16];
-  uint32_t v32[8];
-  uint64_t v64[4];
-} tf_key;
-
-typedef union _tf_blk_t {
-  uint8_t  v8[16];
-  uint16_t v16[8];
-  uint32_t v32[4];
-  uint64_t v64[2];
-} tf_blk;
-
 #pragma pack(push, 1)
 typedef struct _tf_ctx_t {
   uint32_t keys[8+2*16];
@@ -73,11 +52,11 @@ extern "C" {
 
   // x86 asm
   void tf_setkeyx (tf_ctx*, void*);
-  void tf_encx (tf_ctx*, tf_blk*, int);
+  void tf_encx (tf_ctx*, void*, int);
 
   // C code
   void tf_setkey (tf_ctx*, void*);  
-  void tf_enc (tf_ctx*, tf_blk*, int);
+  void tf_enc (tf_ctx*, void*, int);
 
 #ifdef __cplusplus
 }

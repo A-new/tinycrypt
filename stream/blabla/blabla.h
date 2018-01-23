@@ -38,12 +38,6 @@
 #define BB20_NONCE_LEN  16
 #define BB20_ROUNDS     10
 
-typedef union _bb20_blk_t {
-  uint8_t  b[BB20_BLK_LEN];
-  uint32_t w[BB20_BLK_LEN/4];
-  uint64_t q[BB20_BLK_LEN/8];
-} bb20_blk;
-
 typedef union _bb20_ctx_t {
   uint8_t  b[BB20_STATE_LEN];
   uint32_t w[BB20_STATE_LEN/4];

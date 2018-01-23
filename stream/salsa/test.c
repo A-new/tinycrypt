@@ -75,5 +75,6 @@ int main(void)
       equ(strm, res, 64) ? "OK" : "failed");
         
     bin2hex(strm, 64);
+    bin2hex(res, 64);
     return 0;
 }

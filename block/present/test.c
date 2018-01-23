@@ -2,6 +2,8 @@
 // test unit for PRESENT-128
 // odzhan
 
+#include <stdio.h>
+
 #include "present.h"
 
 // Plaintext: 0000000000000000 

@@ -33,24 +33,24 @@ void Theta(
     uint32_t *a, 
     const uint32_t *k)
 {
-  uint32_t t, i;
+    uint32_t t, i;
 
-  t = a[0] ^ a[2]; 
-  
-  t ^= ROTR32(t, 8) ^ ROTL32(t, 8);
-  
-  a[1] ^= t;
-  a[3] ^= t;
-  
-  for (i=0; i<4; i++) {
-    a[i] ^= k[i];
-  }
+    t = a[0] ^ a[2]; 
+    
+    t ^= ROTR32(t, 8) ^ ROTL32(t, 8);
+    
+    a[1] ^= t;
+    a[3] ^= t;
+    
+    for (i=0; i<4; i++) {
+      a[i] ^= k[i];
+    }
 
-  t = a[1] ^ a[3]; 
-  t ^= ROTR32(t, 8) ^ ROTL32(t, 8);
-  
-  a[0] ^= t;
-  a[2] ^= t;
+    t = a[1] ^ a[3]; 
+    t ^= ROTR32(t, 8) ^ ROTL32(t, 8);
+    
+    a[0] ^= t;
+    a[2] ^= t;
 }
 
 void Round(
@@ -69,38 +69,38 @@ void Round(
   0x5E, 0xBC, 0x63, 0xC6, 
   0x97, 0x35, 0x6A, 0xD4 };
   
-  rc1 = rc_tab[rnd];
-  rc2 = 0;
-  if (enc==NOEKEON_DECRYPT) {
-    XCHG(rc1, rc2);
-  }
-  
-  s[0] ^= rc1;
-  Theta(s, Key);
-  s[0] ^= rc2;
-  
-  if (end) return;
-  
-  //Pi1
-  s[1] = ROTL32(s[1], 1);
-  s[2] = ROTL32(s[2], 5);
-  s[3] = ROTL32(s[3], 2);
-  
-  // Gamma
-  s[1] ^= ~((s[3]) | (s[2]));
-  s[0] ^=   s[2] & s[1];  
-  
-  XCHG(s[0], s[3]);
-  
-  s[2] ^= s[0] ^ s[1] ^ s[3];
-  
-  s[1] ^= ~((s[3]) | (s[2]));
-  s[0] ^=   s[2] & s[1];  
-  
-  // Pi2
-  s[1] = ROTR32(s[1], 1);
-  s[2] = ROTR32(s[2], 5);
-  s[3] = ROTR32(s[3], 2);
+    rc1 = rc_tab[rnd];
+    rc2 = 0;
+    if (enc==NOEKEON_DECRYPT) {
+      XCHG(rc1, rc2);
+    }
+    
+    s[0] ^= rc1;
+    Theta(s, Key);
+    s[0] ^= rc2;
+    
+    if (end) return;
+    
+    //Pi1
+    s[1] = ROTL32(s[1], 1);
+    s[2] = ROTL32(s[2], 5);
+    s[3] = ROTL32(s[3], 2);
+    
+    // Gamma
+    s[1] ^= ~((s[3]) | (s[2]));
+    s[0] ^=   s[2] & s[1];  
+    
+    XCHG(s[0], s[3]);
+    
+    s[2] ^= s[0] ^ s[1] ^ s[3];
+    
+    s[1] ^= ~((s[3]) | (s[2]));
+    s[0] ^=   s[2] & s[1];  
+    
+    // Pi2
+    s[1] = ROTR32(s[1], 1);
+    s[2] = ROTR32(s[2], 5);
+    s[3] = ROTR32(s[3], 2);
 }
 
 void swapcpy(

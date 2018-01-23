@@ -32,9 +32,6 @@
 
 #include "../../macros.h"
 
-#define SIG0(x)(ROTR32((x),  7) ^ ROTR32((x), 18) ^ ((x) >>  3))
-#define SIG1(x)(ROTR32((x), 17) ^ ROTR32((x), 19) ^ ((x) >> 10))
-
 typedef struct hc_ctx_t {
   uint32_t ctr;
   union {

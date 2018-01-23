@@ -43,10 +43,10 @@
 extern "C" {
 #endif
 
-void lightmac_tag(const void*, uint32_t, void*, void*);
-void lightmac_tagx(const void*, uint32_t, void*, void*);
+  void lightmac_tag(const void*, uint32_t, void*, void*);
+  void lightmac_tagx(const void*, uint32_t, void*, void*);
 
-int lightmac_verify(const void*, uint32_t, void*, void*);
+  int lightmac_verify(const void*, uint32_t, void*, void*);
     
 #ifdef __cplusplus
 }

@@ -34,22 +34,7 @@
 
 #define CC20_BLK_LEN 64
 
-
-typedef union _w512_t {
-  uint8_t b[64];
-  uint32_t w[16];
-  uint64_t q[8];
-} w512_t;
-
-typedef union _cc20_blk_t {
-  uint8_t  b[CC20_BLK_LEN];
-  uint32_t w[CC20_BLK_LEN/4];
-  uint64_t q[CC20_BLK_LEN/8];
-} cc20_blk;
-
-typedef struct _cc20_ctx_t {
-  cc20_blk s;
-} cc20_ctx;
+typedef w512_t cc20_ctx;
 
 #ifdef __cplusplus
 extern "C" {
