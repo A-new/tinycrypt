@@ -78,18 +78,18 @@ xrc5_cryptx:
     mov    edi, esp           ; edi = S
     mov    eax, 0xB7E15163    ; eax = RC6_P
     mov    cl, RC5_KR    
-r_l0:
+init_subkeys:
     stosd                     ; S[i] = A
     add    eax, 0x9E3779B9    ; A += RC6_Q
-    loop   r_l0
+    loop   init_subkeys
     mov    edi, ebx
     mul    ecx                ; eax = 0, edx = 0
     xor    ebx, ebx           ; ebx = 0
-r_lx:    
+set_idx:    
     xor    ebp, ebp           ; i % RC6_KR    
-r_l1:
+init_key_loop:
     cmp    ebp, RC5_KR
-    je     r_lx    
+    je     set_idx    
 
     ; A = S[i%RC6_KR] = ROTL32(S[i%RC5_KR] + A+B, 3); 
     add    eax, ebx           ; A += B
@@ -109,7 +109,7 @@ r_l1:
     inc    ebp
     inc    edx                ; i++
     cmp    dl, RC5_KR*3       ; i<RC6_KR*3
-    jnz    r_l1
+    jnz    init_key_loop
     
     mov    edi, esp 
     push   esi                ; save ptr to data    
