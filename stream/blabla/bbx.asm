@@ -1,5 +1,5 @@
 ;
-;  Copyright © 2015, 2017 Odzhan, Peter Ferrie. All Rights Reserved.
+;  Copyright © 2018 Odzhan. All Rights Reserved.
 ;
 ;  Redistribution and use in source and binary forms, with or without
 ;  modification, are permitted provided that the following conditions are
@@ -30,8 +30,7 @@
 ; -----------------------------------------------
 ; BlaBla stream cipher in x64 assembly
 ;
-; size: 270 bytes for win64
-;       258 bytes for linux (use -DNIX)
+; size: 334 using Microsoft fastcall
 ;
 ; -----------------------------------------------
 
@@ -98,15 +97,14 @@ sk_l0:
     pop    rsi
     ret    
     
-; eax = index
+; rsi = state
+; rdi = x
 FX:
-    push    rbx
-    push    rcx
-    push    rdx
-    push    rdi
-    push    rsi
-    push    rbp    
-bb_f0:    
+    push    rsi   
+    push    rdi   
+    push    rbx   
+    push    rbp   
+    push    rcx   
     ; load indexes
     call    bb_f1
     dw      0c840H, 0d951H
@@ -115,11 +113,12 @@ bb_f0:
     dw      0d872H, 0e943H
 bb_f1:
     pop     rsi  ; pointer to indexes
-    push    rcx
     mov     cl, 8
 bb_f2:
+    push    rcx
     xor     eax, eax 
     lodsw
+    push    rsi
     ; ========================
     mov     ebx, eax
     mov     edx, eax
@@ -134,11 +133,10 @@ bb_f2:
     shr     edx, 8
     and     edx, 15
     ; d = ((idx >> 12) & 0xF);
-    shr     esi, 12        
-    
+    shr     esi, 12         
     ; load ecx with rotate values
     mov     ecx, 0x3F101820
-q_l1:
+bb_f3:
     ; s[a]+= s[b];
     mov     rbp, [rdi+rbx*8]    
     add     [rdi+rax*8], rbp
@@ -146,46 +144,43 @@ q_l1:
     mov     rbp, [rdi+rsi*8]
     xor     rbp, [rdi+rax*8]
     ror     rbp, cl
-    mov     [rdi+rsi*8], rbp
+    mov     [rdi+rsi*8], rbp  
+    xchg    edx, eax
+    xchg    esi, ebx    
+    shr     ecx, 8
+    jnz     bb_f3
     ; ======================
-    loop    bb_f2
-    pop     rcx
-    loop    bb_f1
-        
-    shr     ecx, 16
-    jnz     q_l1
-    
-    pop     rbp
     pop     rsi
-    pop     rdi
-    pop     rdx
     pop     rcx
+    loop    bb_f2 
+    
+    pop     rcx
+    pop     rbp
     pop     rbx
+    pop     rdi
+    pop     rsi
     ret
 
 ; generate 128-byte stream 
 ; rdi has x
 ; rsi has state   
 bb20_streamx:
+    push    rax       ; save rcx
     push    rcx       ; save rcx
-
     push    rsi       ; save state
-    push    rdi       ; save x
-    
+    push    rdi       ; save x    
     ; copy state to x
     xchg    eax, ecx  ; zero the upper 56-bits of rcx
     mov     cl, 128   ; 1024-bits
-    rep     movsb
-    
-    mov     cl, 20/2
-bb_sx0    
+    rep     movsb    
     ; apply 20 rounds of permutation function
     pop     rdi       ; restore x
-    pop     rsi       ; restore state
+    mov     cl, 20/2
+bb_sx0    
     ; F(x->q);
     call    FX   
     loop    bb_sx0
-    
+    pop     rsi       ; restore state    
     ; add state to x    
     mov     cl, 16
 bb_sx1:
@@ -193,42 +188,42 @@ bb_sx1:
     mov     rax, [rsi+rcx*8-8]
     add     [rdi+rcx*8-8], rax
     loop    bb_sx1
-
-    ; update block counter
-    ; c->q[13]++;
-    stc
-    adc     qword[rsi+13*8], rcx    
+    ; update 64-bit counter
+    ; c->q[13]++;   
+    inc     qword[rsi+13*8]    
     pop     rcx
+    pop     rax
     ret
  
-; void bb20_encrypt (uint64_t len, void *in, bb20_ctx *ctx)
+; void bb20_encrypt (uint64_t len, void *in, bb20_ctx *state)
 bb20_encryptx:
     push    rsi
     push    rdi
     push    rbx
     push    rbp
   
-    push    r8              ; rsi = ctx
+    push    r8               ; rsi = state
     pop     rsi    
     
-    push    rdx             ; rbx = in
+    push    rdx              ; rbx = in
     pop     rbx
 
     sub     rsp, 128
     push    rsp
     pop     rdi    
-cc_l0:
-    jecxz   cc_l2             ; exit if len==0
+bb_e0:
+    xor     eax, eax         ; idx = 0  
+    jecxz   bb_e3            ; exit if len==0
     call    bb20_streamx
-    xor     eax, eax          ; idx = 0  
-cc_l1:
+bb_e1:
     mov     dl, byte[rdi+rax]
-    xor     byte[rbx+rax], dl ; p[idx] ^= stream[idx]
+    xor     byte[rbx], dl    ; p[idx] ^= stream[idx]
+    inc     rbx
     inc     al
     cmp     al, 128
-    loopne  cc_l1             ; --len
-    jmp     cc_l0
-cc_l2:
+    loopne  bb_e1            ; --len
+    jmp     bb_e0
+bb_e3:
     add     rsp, 128
     pop     rbp
     pop     rbx
@@ -238,6 +233,7 @@ cc_l2:
 
 ; generate key stream of len-bytes    
 bb20_keystreamx:
+    ; int3
     push    rdi
     ; memset(out, 0, len);
     push    rdx
@@ -249,8 +245,5 @@ bb20_keystreamx:
     ; bb20_encrypt(len, out, c);
     call    bb20_encryptx    
     pop     rdi
-    ret
-    
-    
-    
+    ret    
     

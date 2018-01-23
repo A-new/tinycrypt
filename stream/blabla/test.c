@@ -29,6 +29,18 @@ uint8_t bb_tv[]={
   70, 148, 88, 107, 47, 30, 5, 41, 226, 224, 81, 95, 96, 50, 159, 96, 
   221, 242, 17, 214, 22, 109, 12, 153, 96, 196, 6, 102, 109, 90 };
 
+void bin2hex(char *s, void *p, int len) {
+    int i;
+    
+    printf("%s : ", s);
+    
+    for (i=0; i<len; i++) {
+      if ((i & 15)==0) putchar('\n');
+      printf ("%02x ", ((uint8_t*)p)[i]);
+    }
+    printf("\n\n");
+}
+  
 int main(void)
 {
     uint8_t  key[BB20_KEY_LEN];
@@ -41,8 +53,12 @@ int main(void)
       key[i] = (uint8_t)i;
     }
     
+    bin2hex("v", bb_tv, sizeof(bb_tv));
+    
     bb20_setkeyx(&c, key, nonce);
     bb20_keystreamx(sizeof(stream), stream, &c);
+    
+    bin2hex("s", stream, sizeof(stream));
     
     equ = memcmp(stream, bb_tv, sizeof(bb_tv))==0;
 
