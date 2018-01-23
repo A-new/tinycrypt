@@ -136,19 +136,16 @@ void hight128_encrypt(void *data, void *keys)
 
     for (i=0; i<32; i++) {
       x->q = ROTL64(x->q, 8);
-      // apply linear/non-linear operations
-      for (j=2; j<8;) {
+      // apply linear/non-linear operations      
+      for (j=2; j<8; j+=4) {
         c = x->b[j-1];
         c = ROTL8(c, 3) ^ ROTL8(c, 4) ^ ROTL8(c, 6);
-        x->b[  j] += c ^ *sk++;
-        j+=2;
+        x->b[j] += c ^ *sk++;
         
-        c = x->b[j-1];
-        c = ROTL8(c, 1) ^ ROTL8(c, 2) ^ ROTL8(c, 7);
-        
-        x->b[j&7] ^= (c + *sk++);
-        j+=2;
-      }
+        c = x->b[j+1];
+        c = ROTL8(c, 1) ^ ROTL8(c, 2) ^ ROTL8(c, 7);        
+        x->b[(j+2)&7] ^= (c + *sk++);
+      }      
     }
     // unnecessary IMHO, but it's part of the spec
     x->q = ROTL64(x->q, 56);  

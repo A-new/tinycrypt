@@ -30,7 +30,7 @@
 ; -----------------------------------------------
 ; HIGHT-64/128 block cipher in x86 assembly
 ;
-; size: 286 bytes
+; size: 283 bytes
 ;
 ; global calls use cdecl convention
 ;
@@ -182,41 +182,39 @@ hi_enc:
     push   ecx
     ; x->q = ROTL64(x->q, 8);
     mov    cl, 8
-    call   rotl64    
-    push   2  
-    pop    edx    
+    call   rotl64        
     mov    cl, 2
+    movzx  edx, cl
 hi_l1:
     ; c = x->b[j-1];
     mov    al, [edi+edx-1]
     ; c = ROTL8(c, 3) ^ ROTL8(c, 4) ^ ROTL8(c, 6);
     mov    ah, al
-    rol    al, 3
-    rol    ah, 4
+    rol    ah, 3
+    rol    al, 4
+    xor    ah, al
+    rol    al, 6-4
+    xor    ah, al
+    ; x->b[j] += (c ^ *sk++);
+    lodsb
     xor    al, ah
-    rol    ah, 6-4
-    xor    al, ah
-    ; x->b[  j] += (c ^ *sk++);
-    xor    al, [esi]
-    inc    esi
-    add    [edi+edx], al
-    add    dl, 2    
-    ; c = x->b[j-1];
-    mov    al, [edi+edx-1]
+    add    [edi+edx], al    
+    ; c = x->b[j+1];
+    mov    al, [edi+edx+1]
     ; c = ROTL8(c, 1) ^ ROTL8(c, 2) ^ ROTL8(c, 7);
     mov    ah, al
-    rol    al, 1
-    rol    ah, 2
-    xor    al, ah
-    rol    ah, 7-2
-    xor    al, ah
-    ; x->b[j&7] ^= (c + *sk++);
-    add    al, [esi]
-    inc    esi
-    mov    ebx, edx
+    rol    ah, 1
+    rol    al, 2
+    xor    ah, al
+    rol    al, 7-2
+    xor    ah, al
+    ; x->b[(j+2) & 7] ^= (c + *sk++);
+    lodsb
+    add    al, ah
+    lea    ebx, [edx+2]
     and    bl, 7
     xor    [edi+ebx], al
-    add    dl, 2    
+    add    dl, 4    
     loop   hi_l1    
     pop    ecx
     loop   hi_enc    
@@ -229,11 +227,11 @@ hi_l1:
     add    [edi+0], al
     ; x->b[2] ^= wk[1];
     xor    [edi+2], ah
-    shr    eax, 16
+    bswap  eax                ; instead of shr eax, 16
     ; x->b[4] += wk[6]; 
-    add    [edi+4], al    
+    add    [edi+4], ah    
     ; x->b[6] ^= wk[7];
-    xor    [edi+6], ah    
+    xor    [edi+6], al    
     popad
     ret
     

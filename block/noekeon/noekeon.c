@@ -50,8 +50,7 @@ void Theta(
   t ^= ROTR32(t, 8) ^ ROTL32(t, 8);
   
   a[0] ^= t;
-  a[2] ^= t;  
-
+  a[2] ^= t;
 }
 
 void Round(
