@@ -23,6 +23,15 @@ rc5_tv tv[2]=
   {"00000001000000000000000000000000", "0000000000000000", "AEDA56A5190042CE"}
 };
 
+void bin2hex(char *s, void *p, int len) {
+  int i;
+  printf("%s : ", s);
+  for (i=0; i<len; i++) {
+    printf ("%02x ", ((uint8_t*)p)[i]);
+  }
+  printf("\n\n");
+}
+
 size_t hex2bin (void *bin, char hex[]) {
   size_t  len, i;
   int     x;
@@ -47,11 +56,13 @@ size_t hex2bin (void *bin, char hex[]) {
   return len / 2;
 } 
 
+void xrc5_cryptx(void *key, void *data);
+
 int main (int argc, char *argv[])
 {
-  int     i, e;
+  int     i, j, e;
   RC5_CTX ctx;
-  uint8_t pt1[8], pt2[8], ct1[8], ct2[8], key[16];
+  uint8_t pt1[8], pt2[8], ct1[8], ct2[8], key[16], t[16];
   
   for (i=0; i<2; i++)
   {
@@ -59,22 +70,29 @@ int main (int argc, char *argv[])
     hex2bin (pt1, tv[i].pt);
     hex2bin (ct1, tv[i].ct);
     
-    rc5_setkey (&ctx, key);
-    rc5_crypt (&ctx, pt1, ct2, RC5_ENCRYPT);
-
-    for (i=0; i<8; i++) printf (" %02x", ct2[i]);  
+    #ifdef SINGLE
+      memcpy(t, key, 16); 
+      memcpy(ct2, pt1, 8); 
+      xrc5_cryptx(key, ct2);
+    #else  
+      rc5_setkey (&ctx, key);
+      rc5_crypt (&ctx, pt1, ct2, RC5_ENCRYPT);
+    #endif
+    
+    bin2hex("ciphertext", ct2, RC5_BLK_LEN);  
     
     e=memcmp (ct1, ct2, RC5_BLK_LEN);
 
     printf ("\n\nRC5 encryption test #%i %s", 
       (i+1), e==0?"passed":"failed");
       
+    rc5_setkey (&ctx, key);  
     rc5_crypt (&ctx, ct2, pt2, RC5_DECRYPT);
 
-    for (i=0; i<8; i++) printf (" %02x", pt2[i]);  
+    bin2hex("ciphertext", pt2, RC5_BLK_LEN);  
     
     e=memcmp (pt1, pt2, RC5_BLK_LEN);
-    printf ("\nRC5 decryption test #%i %s", 
+    printf ("RC5 decryption test #%i %s\n", 
       (i+1), e==0?"passed":"failed");
   }
   return 0;
