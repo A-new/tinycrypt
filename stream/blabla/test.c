@@ -41,8 +41,8 @@ int main(void)
       key[i] = (uint8_t)i;
     }
     
-    bb20_setkey(&c, key, nonce);
-    bb20_keystream(sizeof(stream), stream, &c);
+    bb20_setkeyx(&c, key, nonce);
+    bb20_keystreamx(sizeof(stream), stream, &c);
     
     equ = memcmp(stream, bb_tv, sizeof(bb_tv))==0;
 

@@ -99,7 +99,7 @@ void bb20_stream (bb20_ctx *c, w1024_t *x)
     for (i=0; i<16; i++) {
       x->q[i] += c->q[i];
     }
-    // update block counter
+    // update 64-bit counter
     c->q[13]++;
 }
 

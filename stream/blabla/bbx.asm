@@ -28,7 +28,7 @@
 ;  POSSIBILITY OF SUCH DAMAGE.
 ;
 ; -----------------------------------------------
-; ChaCha20 stream cipher in x64 assembly
+; BlaBla stream cipher in x64 assembly
 ;
 ; size: 270 bytes for win64
 ;       258 bytes for linux (use -DNIX)
@@ -42,6 +42,7 @@
       global bb20_setkeyx
       global bb20_encryptx
       global bb20_keystreamx
+      global FX
     %endif
     
     
@@ -80,11 +81,13 @@ sk_l0:
     mov    cl, (5*8)/4
     rep    movsd
     
+    ; set counter
     ; c->q[13] = 1
     push   1
     pop    rax
     stosq
     
+    ; set nonce
     push   r8        ; rsi = nonce   
     pop    rsi
     movsq
@@ -95,15 +98,29 @@ sk_l0:
     pop    rsi
     ret    
     
-
-blabla_permute:
+; eax = index
+FX:
     push    rbx
     push    rcx
     push    rdx
     push    rdi
     push    rsi
-    push    rbp
-    
+    push    rbp    
+bb_f0:    
+    ; load indexes
+    call    bb_f1
+    dw      0c840H, 0d951H
+    dw      0ea62H, 0fb73H
+    dw      0fa50H, 0cb61H
+    dw      0d872H, 0e943H
+bb_f1:
+    pop     rsi  ; pointer to indexes
+    push    rcx
+    mov     cl, 8
+bb_f2:
+    xor     eax, eax 
+    lodsw
+    ; ========================
     mov     ebx, eax
     mov     edx, eax
     mov     esi, eax
@@ -119,31 +136,22 @@ blabla_permute:
     ; d = ((idx >> 12) & 0xF);
     shr     esi, 12        
     
-    lea     rax, [rdi+rax*4]
-    lea     rbx, [rdi+rbx*4]
-    lea     rdx, [rdi+rdx*4]
-    lea     rsi, [rdi+rsi*4]
     ; load ecx with rotate values
-    ; 16, 12, 8, 7
-    mov     ecx, 07080C10h
-    mov     ebp, [rbx]
+    mov     ecx, 0x3F101820
 q_l1:
-    xor     edi, edi
-q_l2:
-    ; x[a] = PLUS(x[a],x[b]); 
-    add     ebp, [rax]
-    mov     [rax], ebp
-    ; x[d] = ROTATE(XOR(x[d],x[a]),cl);
-    ; also x[b] = ROTATE(XOR(x[b],x[c]),cl);
-    xor     ebp, [rsi]
-    rol     ebp, cl
-    mov     [rsi], ebp
-    xchg    cl, ch
-    xchg    rdx, rax
-    xchg    rsi, rbx
-    dec     rdi
-    jp      q_l2
-    ; --------------------------------------------
+    ; s[a]+= s[b];
+    mov     rbp, [rdi+rbx*8]    
+    add     [rdi+rax*8], rbp
+    ; s[d] = ROTR64(s[d] ^ s[a], r & 0xFF);
+    mov     rbp, [rdi+rsi*8]
+    xor     rbp, [rdi+rax*8]
+    ror     rbp, cl
+    mov     [rdi+rsi*8], rbp
+    ; ======================
+    loop    bb_f2
+    pop     rcx
+    loop    bb_f1
+        
     shr     ecx, 16
     jnz     q_l1
     
@@ -155,94 +163,70 @@ q_l2:
     pop     rbx
     ret
 
-; generate stream    
-; expects ctx in rdi, stream buffer in rbx
-bb20_stream:
-    push    rcx
+; generate 128-byte stream 
+; rdi has x
+; rsi has state   
+bb20_streamx:
+    push    rcx       ; save rcx
+
+    push    rsi       ; save state
+    push    rdi       ; save x
     
-    push    rbx
-    push    rsi
-    push    rdi
-    
-    ; copy state to stream buffer in rbx
-    push    rsi
-    pop     rbx
-    push    rdx
-    pop     rcx
+    ; copy state to x
+    xchg    eax, ecx  ; zero the upper 56-bits of rcx
+    mov     cl, 128   ; 1024-bits
     rep     movsb
-
-    ; apply 20 rounds of permutation function
-    pop     rdi
-    push    rdi
-    push    20/2  ; 20 rounds
-    pop     rbp
-ccs_l1:
-    ; load indexes
-    call    ccs_l2
-    dw      0c840H, 0d951H
-    dw      0ea62H, 0fb73H
-    dw      0fa50H, 0cb61H
-    dw      0d872H, 0e943H
-ccs_l2:
-    pop     rsi  ; pointer to indexes
-    mov     cl, 8
-ccs_l3:
-    xor     eax, eax 
-    lodsw
-    call    blabla_permute
-    loop    ccs_l3
-    dec     rbp
-    jnz     ccs_l1
-
-    ; restore registers
-    pop     rsi
-    pop     rdi
-    pop     rbx
     
-    ; add state to stream    
+    mov     cl, 20/2
+bb_sx0    
+    ; apply 20 rounds of permutation function
+    pop     rdi       ; restore x
+    pop     rsi       ; restore state
+    ; F(x->q);
+    call    FX   
+    loop    bb_sx0
+    
+    ; add state to x    
     mov     cl, 16
-ccs_l4:
-    mov     rax, [rdi+rcx*8-8]
+bb_sx1:
     ; x->q[i] += c->q[i];
-    add     [rbx+rcx*8-8], rax
-    loop    ccs_l4
+    mov     rax, [rsi+rcx*8-8]
+    add     [rdi+rcx*8-8], rax
+    loop    bb_sx1
 
     ; update block counter
     ; c->q[13]++;
     stc
-    adc     qword[rdi+13*8], rcx    
+    adc     qword[rsi+13*8], rcx    
     pop     rcx
     ret
  
-; void bb20_encrypt(bb20_ctx *ctx, void *in, uint32_t len) 
+; void bb20_encrypt (uint64_t len, void *in, bb20_ctx *ctx)
 bb20_encryptx:
     push    rsi
     push    rdi
     push    rbx
     push    rbp
-%ifndef NIX    
-    push    rcx              ; rdi = ctx
-    pop     rdi    
-    push    rdx
-    pop     rsi
-    push    r8               ; rcx = len
-    pop     rcx
-%else
-    push    rdx              ; rcx = len 
-    pop     rcx
-%endif
+  
+    push    r8              ; rsi = ctx
+    pop     rsi    
+    
+    push    rdx             ; rbx = in
+    pop     rbx
+
     sub     rsp, 128
     push    rsp
-    pop     rbx    
+    pop     rdi    
 cc_l0:
     jecxz   cc_l2             ; exit if len==0
-    call    bb20_stream
+    call    bb20_streamx
     xor     eax, eax          ; idx = 0  
 cc_l1:
-    mov     dl, byte[rbx+rax]
-    xor     byte[rsi+rax], dl ; p[idx] ^= stream[idx]
-    sub     edx, 1
-    loopnz  cc_l1             ; --len
+    mov     dl, byte[rdi+rax]
+    xor     byte[rbx+rax], dl ; p[idx] ^= stream[idx]
+    inc     al
+    cmp     al, 128
+    loopne  cc_l1             ; --len
     jmp     cc_l0
 cc_l2:
     add     rsp, 128
@@ -252,5 +236,21 @@ cc_l2:
     pop     rsi
     ret
 
-
+; generate key stream of len-bytes    
+bb20_keystreamx:
+    push    rdi
+    ; memset(out, 0, len);
+    push    rdx
+    pop     rdi
+    push    rcx
+    xor     eax, eax
+    rep     stosb    
+    pop     rcx
+    ; bb20_encrypt(len, out, c);
+    call    bb20_encryptx    
+    pop     rdi
+    ret
+    
+    
+    
     

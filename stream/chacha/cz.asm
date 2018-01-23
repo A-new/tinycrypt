@@ -72,7 +72,7 @@ _xchacha20:
     lodsd
     xchg   ecx, eax          ; ecx = len
     lodsd
-    xchg   ebx, eax          ; edi = input or key+nonce
+    xchg   ebx, eax          ; ebx = input or key+nonce
     lodsd
     jecxz  init_key    
     xchg   esi, eax          ; esi = state
