@@ -32,7 +32,7 @@
 ;
 ; https://people.csail.mit.edu/rivest/pubs/RRSY98.pdf
 ;
-; size: 173 bytes
+; size: 170 bytes
 ;
 ; global calls use cdecl convention
 ;
@@ -52,63 +52,61 @@
 %define L esp
 
         %ifndef BIN
-          global xrc6_crypt
-          global _xrc6_crypt
+          global xrc6_cryptx
+          global _xrc6_cryptx
         %endif
         
-xrc6_crypt:
-_xrc6_crypt:
+xrc6_cryptx:
+_xrc6_cryptx:
     pushad
-    mov    esi, [esp+32+4]   ; key
-    mov    ebx, [esp+32+8]   ; data
-    xor    ecx, ecx
-    mul    ecx
-    mov    ch, 1
-    sub    esp, ecx          ; allocate 256 bytes
-    ; initialize L with 256-bit key    
-    mov    edi, esp    
-    shr    ecx, 3            ; 256/8 = 32
+    mov    esi, [esp+32+4]     ; edi = key / L
+    mov    ebx, [esp+32+8]     ; esi = data
+    xor    ecx, ecx            ; ecx = 0
+    mov    cl, RC6_KR*4+32     ; allocate space for key and sub keys
+    sub    esp, ecx            ; esp = S
+    ; copy 256-bit key to local buffer
+    mov    edi, esp            ; edi = L
+    mov    cl, 32
     rep    movsb
-    ; initialize S   
-    pushad
-    mov    eax, 0xB7E15163   ; RC6_P
+    ; initialize S / sub keys 
+    push   edi                 ; save S
+    mov    eax, 0xB7E15163     ; eax = RC6_P
     mov    cl, RC6_KR    
-r_l0:
-    stosd
-    add    eax, 0x9E3779B9   ; RC6_Q
-    loop   r_l0
-    popad
-    ; create subkeys  
-    push   ebx               ; save ptr to data
-    xor    ebx, ebx          ; i=0    
-r_lx:    
-    xor    ebp, ebp          ; i%RC6_KR    
-r_l1:
+init_subkeys:
+    stosd                      ; S[i] = A
+    add    eax, 0x9E3779B9     ; A += RC6_Q
+    loop   init_subkeys
+    pop    edi                 ; restore S
+    mov    esi, ebx            ; esi = data
+    mul    ecx                 ; eax = 0, edx = 0
+    xor    ebx, ebx            ; ebx = 0
+set_idx:    
+    xor    ebp, ebp            ; i % RC6_KR    
+init_key_loop:
     cmp    ebp, RC6_KR
-    je     r_lx    
+    je     set_idx    
+
     ; A = S[i%RC6_KR] = ROTL32(S[i%RC6_KR] + A+B, 3); 
-    lea    eax, [eax+edx]    ; A  = A+B
-    add    eax, [edi+ebp*4]  ; A += S[i%RC6_KR]
-    rol    eax, 3            ; A  = ROTL32(A, 3)
-    mov    [edi+ebp*4], eax  ; S[i%RC6_KR] = A
+    add    eax, ebx            ; A += B
+    add    eax, [edi+ebp*4]    ; A += S[i%RC6_KR]
+    rol    eax, 3              ; A  = ROTL32(A, 3)
+    mov    [edi+ebp*4], eax    ; S[i%RC6_KR] = A
     
-    ; B = L[i&7] = ROTL32(L[i&7] + A+B, A+B);
-    add    edx, eax          ; B += A
-    mov    ecx, edx          ; save A+B in ecx
-    mov    esi, ebx          ; esi = i 
-    and    esi, 7            ; esi %= 8
-    add    edx, [esp+esi*4+4]; B += L[i%8] 
-    rol    edx, cl           ; B = ROTL32(B, A+B)
-    mov    [esp+esi*4+4], edx; L[i%8] = B    
-    
+    ; B = L[i%4] = ROTL32(L[i%4] + A+B, A+B);
+    add    ebx, eax            ; B += A
+    mov    ecx, ebx            ; save A+B in ecx
+    push   edx                 ; save i
+    and    dl, 7               ; %= 8
+    add    ebx, [edi+edx*4-32] ; B += L[i%8]    
+    rol    ebx, cl             ; B = ROTL32(B, A+B)
+    mov    [edi+edx*4-32], ebx ; L[i%8] = B    
+    pop    edx                 ; restore i    
     inc    ebp
-    inc    ebx               ; i++
-    cmp    bl, RC6_KR*3      ; i<RC6_KR*3
-    jnz    r_l1
-    
-    pop    esi               ; esi = data
-    push   esi               ; save ptr to data
-    
+    inc    edx                 ; i++
+    cmp    dl, RC6_KR*3        ; i<RC6_KR*3
+    jnz    init_key_loop   
+
+    push   esi               ; save ptr to data    
     ; load plaintext
     lodsd
     push   eax               ; save A
@@ -161,10 +159,13 @@ r6c_l3:
     
     ; A += *k; k++;
     add    A, [edi]
+    scasd
     ; C += *k; k++;
-    add    C, [edi+4]
-    ; save ciphertext
-    pop    edi         ; edi=data
+    add    C, [edi]
+    scasd
+    ; save ciphertext  
+    pop    esp         ; esp = data
+    xchg   esp, edi    ; esp = fixed stack, edi = data
     xchg   eax, A
     stosd              ; save A
     xchg   eax, B      
@@ -173,8 +174,6 @@ r6c_l3:
     stosd              ; save C 
     xchg   eax, D 
     stosd              ; save D
-    mov    ch, 1       ; ecx = 256
-    add    esp, ecx
     popad
     ret
     

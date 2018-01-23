@@ -29,20 +29,18 @@
   
 #include "rc6.h"
 
-void rc6_setkey (RC6_KEY *key, void *K, uint32_t keylen)
+void rc6_setkey (RC6_KEY *out, void *in)
 {  
-  uint32_t i, j, k, A, B, L[8], *kptr=(uint32_t*)K; 
+  uint32_t i, j, k, A, B, L[8]; 
   
   // initialize L with key
-  for (i=0; i<keylen/4; i++) {
-    L[i] = kptr[i];
-  }
+  memcpy(L, in, 32); 
   
   A=RC6_P;
   
   // initialize S with constants
   for (i=0; i<RC6_KR; i++) {
-    key->x[i] = A;
+    out->x[i] = A;
     A += RC6_Q;
   }
   
@@ -51,25 +49,25 @@ void rc6_setkey (RC6_KEY *key, void *K, uint32_t keylen)
   // mix with key
   for (; k < RC6_KR*3; k++)
   { 
-    A = key->x[i] = ROTL32(key->x[i] + A+B, 3);  
+    A = out->x[i] = ROTL32(out->x[i] + A+B, 3);  
     B = L[j]      = ROTL32(L[j] + A+B, A+B);
     
     i++;
     i %= RC6_KR;
     
     j++;
-    j %= keylen/4;
+    j %= 32/4;
   } 
 }
 
 void rc6_crypt (RC6_KEY *key, void *input, void *output, int enc)
 {
-  rc6_blk *in, *out;
+  w128_t *in, *out;
   uint32_t A, B, C, D, T0, T1, i;
   uint32_t *k=(uint32_t*)key->x;
   
-  in =(rc6_blk*)input;
-  out=(rc6_blk*)output;
+  in =(w128_t*)input;
+  out=(w128_t*)output;
   
   // load plaintext/ciphertext
   A=in->w[0];

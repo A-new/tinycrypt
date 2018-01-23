@@ -74,12 +74,10 @@ xrc5_cryptx:
     xor    ecx, ecx            ; ecx = 0
     mov    cl, RC5_KR*4+16     ; allocate space for key and sub keys
     sub    esp, ecx            ; esp = S
-    ; copy 128-bit to local buffer
+    ; copy 128-bit key to local buffer
     mov    edi, esp            ; edi = L
-    movsd
-    movsd
-    movsd
-    movsd
+    mov    cl, 16
+    rep    movsb
     ; initialize S / sub keys 
     push   edi                 ; save S
     mov    eax, 0xB7E15163     ; eax = RC6_P
@@ -109,9 +107,9 @@ init_key_loop:
     mov    ecx, ebx            ; save A+B in ecx
     push   edx                 ; save i
     and    dl, 3               ; %= 4
-    add    ebx, [edi+edx*4-16]    ; B += L[i%4]    
+    add    ebx, [edi+edx*4-16] ; B += L[i%4]    
     rol    ebx, cl             ; B = ROTL32(B, A+B)
-    mov    [edi+edx*4-16], ebx    ; L[i%4] = B    
+    mov    [edi+edx*4-16], ebx ; L[i%4] = B    
     pop    edx                 ; restore i    
     inc    ebp
     inc    edx                 ; i++

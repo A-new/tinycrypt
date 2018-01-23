@@ -5,32 +5,20 @@
 
 #include "rc6.h"
 
+// 256-bit keys
+
 char *test_keys[] = 
-{ "00000000000000000000000000000000",
-  "0123456789abcdef0112233445566778",
-  "00000000000000000000000000000000"
-  "0000000000000000",
-  "0123456789abcdef0112233445566778"
-  "899aabbccddeeff0",
-  "00000000000000000000000000000000"
+{ "00000000000000000000000000000000"
   "00000000000000000000000000000000",
   "0123456789abcdef0112233445566778"
   "899aabbccddeeff01032547698badcfe" };
 
 char *test_plaintexts[] =
 { "00000000000000000000000000000000",
-  "02132435465768798a9bacbdcedfe0f1",
-  "00000000000000000000000000000000",
-  "02132435465768798a9bacbdcedfe0f1",
-  "00000000000000000000000000000000",
   "02132435465768798a9bacbdcedfe0f1" };
 
 char *test_ciphertexts[] =
-{ "8fc3a53656b1f778c129df4e9848a41e",
-  "524e192f4715c6231f51f6367ea43f18",
-  "6cd61bcb190b30384e8a3f168690ae82",
-  "688329d019e505041e52e92af95291d4",
-  "8f5fbd0510d15fa893fa3fda6e857ec2",
+{ "8f5fbd0510d15fa893fa3fda6e857ec2",
   "c8241816f0d7e48920ad16a1674e5d48"};
 
 size_t hex2bin (void *bin, char hex[]) {
@@ -59,31 +47,31 @@ size_t hex2bin (void *bin, char hex[]) {
 
 void run_tests (void)
 {
-  int i, plen, klen;
-  uint8_t p1[32], p2[32], c1[32], c2[32], k[32];
-  RC6_KEY rc6_key;
+  int     i;
+  uint8_t pt1[16], pt2[16], ct1[16], ct2[16], key[32];
+  RC6_KEY ctx;
   
   for (i=0; i<sizeof (test_keys)/sizeof(char*); i++)
-  {
-    memset (p1, 0, sizeof (p1));
-    memset (p2, 0, sizeof (p2));
-    memset (c1, 0, sizeof (c1));
-    memset (c2, 0, sizeof (c2));
-    memset (k, 0, sizeof (k));
+  {    
+    hex2bin (key, test_keys[i]);
+    hex2bin (ct1, test_ciphertexts[i]);
+    hex2bin (pt1, test_plaintexts[i]);
     
-    klen=hex2bin (k, test_keys[i]);
-    hex2bin (c1, test_ciphertexts[i]);
-    plen=hex2bin (p1, test_plaintexts[i]);
+    #ifdef SINGLE
+      memcpy(ct2, pt1, sizeof(ct2)); 
+      xrc6_cryptx(key, ct2);
+    #else  
+      rc6_setkey (&ctx, key);
+      rc6_crypt (&ctx, pt1, ct2, RC6_ENCRYPT);
+    #endif
     
-    //rc6_setkey (&rc6_key, k, klen);
-    //rc6_crypt (&rc6_key, p1, c2, RC6_ENCRYPT);
-    memcpy (c2, p1, 16);
-    xrc6_crypt (k, c2);
-
-    if (memcmp (c1, c2, plen)==0) {
+    if (memcmp (ct1, ct2, sizeof(ct1))==0) {
       printf ("Encryption Passed test #%i\n", (i+1));
-      //rc6_crypt (&rc6_key, c2, p2, RC6_DECRYPT);
-      if (memcmp (p1, p2, plen)==0) {
+      
+      rc6_setkey (&ctx, key);     
+      rc6_crypt (&ctx, ct2, pt2, RC6_DECRYPT);
+      
+      if (memcmp (pt1, pt2, sizeof(pt1))==0) {
         printf ("Decryption passed test #%i\n", (i+1));
       } else {
         printf ("Decryption failed\n");

@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#include "macros.h"
+#include "../../macros.h"
 
 #define RC6_ROUNDS 20
 #define RC6_KR     (2*(RC6_ROUNDS+2))
@@ -22,18 +22,6 @@ typedef struct _RC6_KEY {
   uint32_t x[RC6_KR];
 } RC6_KEY;
 
-typedef union _w128_t {
-  uint8_t b[16];
-  uint32_t w[4];
-  uint64_t q[2];
-} w128_t;
-
-typedef union _w256_t {
-  uint8_t b[32];
-  uint32_t w[8];
-  uint64_t q[4];
-} w256_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,11 +31,13 @@ extern "C" {
   void rc6_cryptx (RC6_KEY*, void*, void*, int);
   
   // C prototype
-  void rc6_setkey (RC6_KEY*, void*, uint32_t);
+  void rc6_setkey (RC6_KEY*, void*);
   void rc6_crypt (RC6_KEY*, void*, void*, int);
 
   void xrc6_setkey (uint32_t*, void*);
   void xrc6_crypt (void*, void*);
+  
+  void xrc6_cryptx(void*, void*);
   
 #ifdef __cplusplus
 }
