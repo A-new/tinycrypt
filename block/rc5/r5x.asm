@@ -32,7 +32,7 @@
 ;
 ; https://people.csail.mit.edu/rivest/Rivest-rc5rev.pdf
 ;
-; size: 119 bytes for single call
+; size: 118 bytes for single call
 ;
 ; global calls use cdecl convention
 ;
@@ -92,7 +92,7 @@ r_l1:
     je     r_lx    
     
     ; A = S[i%RC6_KR] = ROTL32(S[i%RC6_KR] + A+B, 3); 
-    lea    eax, [eax+ebx]     ; A  = A+B
+    add    eax, ebx           ; A += B
     add    eax, [esp+ebp*4]   ; A += S[i%RC6_KR]
     rol    eax, 3             ; A  = ROTL32(A, 3)
     mov    [esp+ebp*4], eax   ; S[i%RC6_KR] = A
