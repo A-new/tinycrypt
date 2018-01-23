@@ -78,72 +78,37 @@ uint32_t G(uint32_t x, w256_t *key, int idx, int r) {
     return u.w;
 }
 
-// perform encryption and decryption based on enc parameter
-void belt_encrypt(void *blk, const void *ks, int enc)
+// perform only encryption
+void belt_encryptx(void *data, void *key)
 {
-    w256_t   v; 
-    w256_t   key;
     uint32_t i, j, t, e;
-    uint32_t *x=(uint32_t*)blk;
-
-    // load 256-bit key into local space
-    memcpy ((void*)key.b, (uint8_t*)ks, 32);
-    // load 128-bit data into local space
-    memcpy ((void*)v.b, (uint8_t*)blk, 16);
-
-    #define a v.w[0]
-    #define b v.w[1]
-    #define c v.w[2]
-    #define d v.w[3]
-
-    // if decryption, rotate key 128-bits
-    if (enc==BELT_DECRYPT) {
-      for (i=0; i<4; i++) {
-        XCHG (key.w[i], key.w[7-i]);
-      }
-    }
+    w128_t  *x=(w128_t*)data;
+    w256_t  *k=(w256_t*)key;
+    
+    #define a x->w[0]
+    #define b x->w[1]
+    #define c x->w[2]
+    #define d x->w[3]
     
     // apply 8 rounds
-    for (i=0, j=0; i<8; j += 7)
-    {
-      b ^= G(a,     &key, j+0, 5);
-      c ^= G(d,     &key, j+1,21);
-      a -= G(b,     &key, j+2,13);
-      e  = G(b + c, &key, j+3,21);
-      t  = ++i;
-
-      if (enc==BELT_DECRYPT) {
-        t = -(t - 9);
-      }
-      
-      e ^= t;
+    for (i=1, j=0; i<=8; j += 7, i++) {
+      b ^= G(a,     k, j+0, 5);
+      c ^= G(d,     k, j+1,21);
+      a -= G(b,     k, j+2,13);
+      e  = G(b + c, k, j+3,21);
+      e ^= i;
       b += e;
       c -= e;
-      d += G(c,     &key, j+4,13);
-      b ^= G(a,     &key, j+5,21);
-      c ^= G(d,     &key, j+6, 5);
-
+      d += G(c,     k, j+4,13);
+      b ^= G(a,     k, j+5,21);
+      c ^= G(d,     k, j+6, 5);
+      
       XCHG(a, b);
       XCHG(c, d);
       XCHG(b, c);
-
-      if (enc==BELT_ENCRYPT)
-          continue;
-      
-      // swap for decryption
-      XCHG(b, c);
-      XCHG(a, d);
     }
-
-    // save data for encryption
-    x[0] = b; x[1] = d;
-    x[2] = a; x[3] = c;
-
-    if (enc == BELT_ENCRYPT)
-        return;
-      
-    // save data for decryption
-    x[0] = c; x[1] = a;
-    x[2] = d; x[3] = b;
+    XCHG(a, b);
+    XCHG(c, d);
+    XCHG(b, c);
 }
 

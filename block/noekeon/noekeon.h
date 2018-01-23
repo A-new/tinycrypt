@@ -38,11 +38,6 @@
 
 #define Nr 16
 
-typedef union _w128_t {
-  uint8_t b[16];
-  uint32_t w[4];
-} w128_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif

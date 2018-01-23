@@ -1,5 +1,5 @@
 ;
-;  Copyright © 2015 Odzhan. All Rights Reserved.
+;  Copyright © 2015, 2017 Odzhan, Peter Ferrie All Rights Reserved.
 ;
 ;  Redistribution and use in source and binary forms, with or without
 ;  modification, are permitted provided that the following conditions are
@@ -28,9 +28,9 @@
 ;  POSSIBILITY OF SUCH DAMAGE.
 ;
 ; -----------------------------------------------
-; SHA-256 stream cipher in x86 assembly
+; SHA-256 cryptographic hash in x86 assembly
 ;
-; size: 675 bytes, 653 using dynamic constants
+; size: 618 bytes, 566 using dynamic constants
 ;
 ; global calls use cdecl convention
 ;
@@ -48,36 +48,93 @@ struc sha256_ctx
 endstruc
     
 SHA256:
-    pushad
-
+     pushad
+%ifdef DYNAMIC
+init_fpu:
+    ; round numbers down
     push   eax
     fstcw  [esp]            ; store control word
     pop    eax
-    or     ax, 00400H       ; set round down bit
-    and    ax, 0F7FFH       ; clear bit
+    or     ah, 4            ; set round down bit
+    and    ah, 0f7h         ; clear bit
     push   eax
     fldcw  [esp]            ; load control word
     pop    eax
-
-    mov    ebx, esp          ; 
-    sub    esp, 4+64+8*4     ; alloc space for ctx
-    mov    edi, esp
-    push   edi               ; save ptr to ctx
-    
-    push   8                 ; load 8 32-bit words
-    pop    ecx
-    call   load_iv
-  dd 06a09e667h, 0bb67ae85h 
-  dd 03c6ef372h, 0a54ff53ah
-  dd 0510e527fh, 09b05688ch
-  dd 01f83d9abh, 05be0cd19h
-load_iv:
-    pop    esi
-    rep    movsd
-    
+%endif
+    mov    edi, [esp+32+4]
+    ; ctx->len = 0;
     xor    eax, eax
-    stosd                    ; ctx.len = 0
-    cdq                      ; idx = 0
+    stosd
+    stosd ;32-bit code can't use 64-bit length, but we need this for alignment
+    
+%ifdef DYNAMIC
+%define i  ecx
+
+    push   8
+    pop    i
+sqrt2int:
+    call   sqr_primes
+
+primes dw 2, 3, 5, 7, 11, 13, 17, 19, 
+       dw 23, 29, 31, 37, 41, 43, 47, 53
+       dw 59, 61, 67, 71, 73, 79, 83, 89
+       dw 97, 101, 103, 107, 109, 113, 127, 131
+       dw 137, 139, 149, 151, 157, 163, 167, 173 
+       dw 179, 181, 191, 193, 197, 199, 211, 223 
+       dw 227, 229, 233, 239, 241, 251, 257, 263
+       dw 269, 271, 277, 281, 283, 293, 307, 311
+primes_len equ $-primes
+    
+sqr_primes:
+    pop    esi
+load_state:
+    ; get square root of number in eax 
+    ; return 32-bit fractional part as integer
+    push   1
+    xor    eax, eax
+    push   eax
+    fild   qword[esp]   ; load 2^32
+    lodsw
+    push   eax
+    fild   dword[esp]   ; load integer
+    push   eax
+    fsqrt
+    fld1                ; load 1 
+    fsubp  st1, st0     ; subtract to get fractional part
+    fmulp  st1, st0     ; multiply fractional part by 2^32
+    frndint
+    fistp  qword[esp]
+    pop    eax 
+    add    esp, 3*4         ; release 2^32 on stack
+
+    stosd
+    loop   load_state
+%else
+    ; ctx->h[0] = 0x6a09e667
+    mov    eax, 06a09e667h
+    stosd
+    ; ctx->h[1] = 0xbb67ae85
+    mov    eax, 0bb67ae85h
+    stosd
+    ; ctx->h[2] = 0x3c6ef372
+    mov    eax, 03c6ef372h
+    stosd
+    ; ctx->h[3] = 0xa54ff53a
+    mov    eax, 0a54ff53ah
+    stosd
+    ; ctx->h[4] = 0x510e527f
+    mov    eax, 0510e527fh
+    stosd
+    ; ctx->h[5] = 0x9b05688c
+    mov    eax, 09b05688ch
+    stosd
+    ; ctx->h[6] = 0x1f83d9ab
+    mov    eax, 01f83d9abh
+    stosd
+    ; ctx->h[7] = 0x5be0cd19
+    mov    eax, 05be0cd19h
+    stosd
+%endif
     
     mov    ebp, [ebx+32+ 4]  ; ecx = inlen
     mov    esi, [ebx+32+ 8]  ; esi = in
@@ -160,12 +217,10 @@ ret_state:
 SHA256_Transform:
     pushad
     
-    lea    esi, [ebx+state]
     push   esi
     
-    push   64
-    pop    ecx
-    shl    ecx, 3
+    xor    ecx, ecx
+    mov    ch, 2
     
     ; allocate work space
     sub    esp, ecx
@@ -251,8 +306,12 @@ ld_k:
     add    t1, dword [edi+4*i+32]
     ; S0 := EP0(a)
     ; S0 := (a rightrotate 2) xor (a rightrotate 13) xor (a rightrotate 22)
-    mov    s0, _a
+    pop    eax
+    push   i
+    push   eax
+    scasd
     mov    t2, s0
+    mov    t3, s0
     ror    s0, 22
     ror    t2, 2
     xor    s0, t2
@@ -260,32 +319,28 @@ ld_k:
     xor    s0, t2
     ; MAJ(a, b, c)
     ; maj := (a and b) xor (a and c) xor (b and c)
-    mov    t2, _a
-    mov    t3, _a
-    or     t2, _b
-    and    t2, _c
-    and    t3, _b
+    mov    t2, t3
+    or     t2, _a
+    and    t2, _b
+    and    t3, _a
     or     t2, t3
     ; temp2 := S0 + maj
     add    t2, s0
     ; d = d + temp1
-    add    _d, t1
+    add    _c, t1
     ; h = temp1 + temp2
-    mov    _h, t1
-    add    _h, t2
+    add    t2, t1
+    mov    _g, t2
     ; shift state
-    mov    esi, edi  
-    push   i
-    push   edi
+    pop    eax
+    mov    edi, esp
     mov    cl, 7
-    lodsd                   ; load a
 shift_state:
     scasd                   ; skip a
     xchg   eax, [edi]       ; a becomes b, eax then has b to swap with c and so on
     loop   shift_state
-    pop    edi
-    stosd
     pop    i
+    push   eax
     
     ; i++
     inc    i
@@ -320,9 +375,8 @@ cbr_primes:
     lea    esi, [esi+(primes-cbr_primes)]
     push   1
     push   0
-    fild   qword[esp]   ; load 2^32
-    push   1
-    fild   dword[esp]
+    fild   qword[esp]       ; load 2^32
+    fld1
     push   3
     fild   dword[esp]
     fdivp                   ; 1.0/3.0
@@ -330,30 +384,20 @@ cbr_primes:
     push   eax
     fild   dword[esp]   ;
     fyl2x                   ; ->log2(Src1)*exponent
-    fld    st0               ; copy the logarithm
+    fld    st0              ; copy the logarithm
     frndint                 ; keep only the characteristic
-    fsub   st1, st0        ; keeps only the mantissa
-    fxch   st1                 ; get the mantissa on top
+    fsub   st1, st0         ; keeps only the mantissa
+    fxch   st1              ; get the mantissa on top
     f2xm1                   ; ->2^(mantissa)-1
     fscale
-    fstp   st1            ; copy result over and "pop" it
+    fstp   st1              ; copy result over and "pop" it
     fmulp  st1, st0                 ; * 2^32
-    fistp  qword[esp]   ; save integer
+    fistp  qword[esp]       ; save integer
     pop    eax
-    add    esp, 4*4         ; release stack
+    add    esp, 3*4         ; release stack
     mov    [esp+1ch], eax
     popad
     ret
-
-primes dw 2, 3, 5, 7, 11, 13, 17, 19, 
-       dw 23, 29, 31, 37, 41, 43, 47, 53
-       dw 59, 61, 67, 71, 73, 79, 83, 89
-       dw 97, 101, 103, 107, 109, 113, 127, 131
-       dw 137, 139, 149, 151, 157, 163, 167, 173 
-       dw 179, 181, 191, 193, 197, 199, 211, 223 
-       dw 227, 229, 233, 239, 241, 251, 257, 263
-       dw 269, 271, 277, 281, 283, 293, 307, 311
-primes_len equ $-primes
     
 %else
 

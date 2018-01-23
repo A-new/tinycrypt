@@ -109,7 +109,17 @@ uint32_t F(uint32_t x0, uint32_t x1,
 // The constant parameter CK
 //
 // generate CK constant for index i
-
+#ifdef TABLE
+uint32_t CK[]=
+{ 0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
+  0x70777e85, 0x8c939aa1, 0xa8afb6bd, 0xc4cbd2d9,
+  0xe0e7eef5, 0xfc030a11, 0x181f262d, 0x343b4249,
+  0x50575e65, 0x6c737a81, 0x888f969d, 0xa4abb2b9,
+  0xc0c7ced5, 0xdce3eaf1, 0xf8ff060d, 0x141b2229,
+  0x30373e45, 0x4c535a61, 0x686f767d, 0x848b9299,
+  0xa0a7aeb5, 0xbcc3cad1, 0xd8dfe6ed, 0xf4fb0209,
+  0x10171e25, 0x2c333a41, 0x484f565d, 0x646b7279 };
+#else
 uint32_t CK(int i)
 {
     int      j;
@@ -121,6 +131,7 @@ uint32_t CK(int i)
     }
     return ck;
 }
+#endif
   
 void sm4_setkey(sm4_ctx *c, const void *key, int enc) {
     uint32_t t, rk0, rk1, rk2, rk3; 
@@ -138,7 +149,11 @@ void sm4_setkey(sm4_ctx *c, const void *key, int enc) {
     
     // generate 32 sub keys
     for (i=0; i<32; i++) {
-      rk0 ^= T(rk1 ^ rk2 ^ rk3 ^ CK(i), 0);
+      #ifdef TABLE
+        rk0 ^= T(rk1 ^ rk2 ^ rk3 ^ CK[i], 0);
+      #else  
+        rk0 ^= T(rk1 ^ rk2 ^ rk3 ^ CK(i), 0);
+      #endif
       c->rk[i] = rk0;
       XCHG(rk0, rk1);
       XCHG(rk1, rk2);

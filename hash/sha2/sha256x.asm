@@ -28,7 +28,7 @@
 ;  POSSIBILITY OF SUCH DAMAGE.
 ;
 ; -----------------------------------------------
-; SHA-256 stream cipher in x86 assembly
+; SHA-256 cryptographic hash in x86 assembly
 ;
 ; size: 650 bytes, 598 using dynamic constants
 ;

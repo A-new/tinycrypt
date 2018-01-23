@@ -23,6 +23,22 @@ uint8_t tv_key[]=
 { 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
   0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10 };
   
+// The constant parameter CK
+//
+// generate CK constant for index i
+
+uint32_t CKX(int i)
+{
+    int      j;
+    uint32_t ck=0;
+
+    for (j=0; j<4; j++) {
+      ck <<= 8;
+      ck |= U8V((((i << 2) + j) * 7));
+    }
+    return ck;
+}
+  
 int main(void)
 {
   sm4_ctx  c;

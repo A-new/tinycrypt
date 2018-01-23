@@ -7,6 +7,15 @@ int equ(uint8_t x[], uint8_t y[], int len) {
     return memcmp(x, y, len)==0;
 }
 
+void bin2hex(char *s, void *p, int len) {
+  int i;
+  printf("%s : ", s);
+  for (i=0; i<len; i++) {
+    printf ("%02x ", ((uint8_t*)p)[i]);
+  }
+  printf("\n\n");
+}
+
 int main() {
 
     uint8_t inenc[] =
@@ -64,18 +73,18 @@ int main() {
     size_t i;
 
     memcpy (outenc, inenc, 16);
-    belt_encrypt(outenc, keyenc, BELT_ENCRYPT);
+    //belt_encrypt(outenc, keyenc, BELT_ENCRYPT);
+    belt_encryptx(outenc, keyenc);
 
     printf("\nEncryption : %s\n\n", equ(outenc, v1, 16) ? "OK" : "FAILED");
-    printf("m: ");
-    for (i = 0; i < 16; ++i) { printf("%02X ", inenc[i]); }
-    printf("\nk: ");
-    for (i = 0; i < 16; ++i) { printf("%02X ", keyenc[i]); }
-    printf("\nc: ");
-    for (i = 0; i < 16; ++i) { printf("%02X ", outenc[i]); }
+    bin2hex("m", inenc, sizeof(inenc));
+    bin2hex("k", keyenc, sizeof(keyenc));
+    bin2hex("c", outenc, sizeof(outenc));
+    bin2hex("v", v1, sizeof(outenc));
+    bin2hex("r", indec,  sizeof(indec));
 
     memcpy (outdec, indec, 16);
-    belt_encrypt(outdec, keydec, BELT_DECRYPT);
+    //belt_encrypt(outdec, keydec, BELT_DECRYPT);
 
     printf("\n\nDecryption : %s\n\n", equ(outdec, v2, 16) ? "OK" : "FAILED");
     printf("c: ");

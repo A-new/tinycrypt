@@ -36,19 +36,7 @@
 
 #define SM4_ENCRYPT 0
 #define SM4_DECRYPT 1
-
-// 32-bit type
-typedef union {
-    uint8_t  b[4];
-    uint32_t w;
-} w32_t;
-
-// 128-bit type
-typedef union {
-    uint8_t  b[16];
-    uint32_t w[4];
-} w128_t;
-   
+  
 typedef struct sm4_ctx_t {
     uint32_t rk[SM4_ROUNDS];
 } sm4_ctx;
