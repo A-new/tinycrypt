@@ -71,6 +71,7 @@ _chas_encryptx:
     push    16
     pop     ecx
 ck_l0:    
+    ; apply permutation
     add     v0, v1
     rol     v1, 5
     xor     v1, v0

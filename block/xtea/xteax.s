@@ -7,10 +7,10 @@
 
 xtea_encrypt:
   push  {r4, r5, r6, r7, r8, lr}  
-  mov   r0, r0, asl #1
+  mov   r0, 64
   ldm   r2, {r4, r8}
   mov   r3, #0
-  ldr   r6, xtea_const
+  ldr   r6, =#0x9E3779B9
 .L2:
   tst   r0, #1
   addne r3, r3, r6
@@ -31,5 +31,3 @@ xtea_encrypt:
 .L8:
   stm   r2, {r4, lr}
   pop   {r4, r5, r6, r7, r8, pc}
-xtea_const: 
-  .word 0x9E3779B9

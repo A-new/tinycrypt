@@ -29,7 +29,8 @@
 
 #include "xtea.h"
 
-void xtea_encrypt(uint32_t rnds, void *key, void *buf) {
+// uses 64 rounds by default
+void xtea_encrypt(void *key, void *buf) {
     int      i;
     uint32_t v0, v1, t, sum=0;
     uint32_t *k=(uint32_t*)key;
@@ -37,13 +38,16 @@ void xtea_encrypt(uint32_t rnds, void *key, void *buf) {
     
     v0 = v[0]; v1 = v[1];
     
-    for (i=rnds<<1; i>0; i--) {
+    for (i=64; i>0; i--) {
       t = sum;
       if (i & 1) {
         sum += 0x9E3779B9;
         t = sum >> 11;          
       }
-      v0  += ((((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + k[t & 3]));        
+      v0  += ((((v1 << 4) ^ 
+         (v1 >> 5)) + v1) ^ 
+         (sum + k[t & 3]));
+         
       XCHG(v0, v1);
     }
     v[0] = v0; v[1] = v1;
