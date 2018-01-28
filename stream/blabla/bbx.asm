@@ -233,7 +233,6 @@ bb_e3:
 
 ; generate key stream of len-bytes    
 bb20_keystreamx:
-    ; int3
     push    rdi
     ; memset(out, 0, len);
     push    rdx
