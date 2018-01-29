@@ -36,8 +36,8 @@
 extern "C" {
 #endif
 
-  void xtea_encrypt(uint32_t, void*, void*);
-  void xtea_encryptx(uint32_t, void*, void*);
+  void xtea_encrypt(void*, void*);
+  void xtea_encryptx(void*, void*);
   
 #ifdef __cplusplus
 }

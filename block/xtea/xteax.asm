@@ -56,15 +56,12 @@
 xtea_encryptx:    
 _xtea_encryptx:
     pushad
-    lea    esi, [esp+32+4]
-    lodsd
-    cdq                     ; sum = 0
-    lea    ecx, [edx+eax*2] ; ecx = rnds << 1
-    lodsd
-    xchg   eax, edi         ; edi = key
-    lodsd
-    push   eax              ; save buf
-    xchg   eax, esi         ; esi = buf
+    mov    edi, [esp+32+4]   ; edi = key
+    mov    esi, [esp+32+8]   ; esi = data
+    push   64
+    pop    ecx
+    xor    edx, edx          ; sum = 0
+    push   esi
     lodsd
     xchg   eax, v1
     lodsd

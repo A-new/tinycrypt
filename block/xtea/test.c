@@ -43,6 +43,15 @@ static const unsigned char xtea_test_ct[6][8] =
     { 0x0e, 0x0c, 0x50, 0x61, 0xca, 0x40, 0x4a, 0x92 }
 };
 
+void bin2hex(char *s, void *p, int len) {
+  int i;
+  printf("%s : ", s);
+  for (i=0; i<len; i++) {
+    printf ("%02x ", ((uint8_t*)p)[i]);
+  }
+  printf("\n\n");
+}
+
 int main(void)
 {
   int     i, equ;
@@ -52,7 +61,13 @@ int main(void)
     memcpy(buf, &xtea_test_pt[i][0], 8);
     memcpy(key, &xtea_test_key[i][0], 16);
     
-    xtea_encrypt(32, key, buf);
+    #ifdef ASM
+      xtea_encryptx(key, buf);
+    #else
+      xtea_encrypt(key, buf);
+    #endif
+    
+    bin2hex("c:", buf, 8);
     
     equ = memcmp(buf, &xtea_test_ct[i][0], 8)==0;
     printf ("XTEA Test #%i %s\n", 

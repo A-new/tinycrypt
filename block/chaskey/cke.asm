@@ -68,9 +68,11 @@ _chas_encryptx:
     xor     v1, [edi+ 4]
     xor     v2, [edi+ 8]
     xor     v3, [edi+12]
+    ; 16 rounds
     push    16
     pop     ecx
 ck_l0:    
+    ; apply permutation
     add     v0, v1
     rol     v1, 5
     xor     v1, v0
