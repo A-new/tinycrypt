@@ -30,9 +30,7 @@
 #ifndef SHA3_H
 #define SHA3_H
 
-#include <stdint.h>
-
-#include "macros.h"
+#include "../../macros.h"
    
 #define SHA3_ROUNDS             24
 #define SHA3_STATE_LEN          25
